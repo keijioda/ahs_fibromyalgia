@@ -22,6 +22,8 @@ AHS Overlap Population Fibromyalgia Study
       females did not indicate their diagnosis year
   - \[**Need to check**\] If diagnosed \< 20 years ago or treated within
     the last 12 months, they were considered as incident cases
+    - According to this classification rule, there are 136 incident
+      cases (4.3%) out of 3136 women
 
 | fibroy    |  No | Yes | NA\_ | Total |
 |:----------|----:|----:|-----:|------:|
@@ -42,8 +44,19 @@ AHS Overlap Population Fibromyalgia Study
   AHS-1](./images/AHS1_Q37.png))
   - Warm parenting: `mwarm`, `fwarm`
   - Cold parenting: `mcold`, `fcold`
-  - Parent situation:
-  - Raised by:
+  - ~~Parent situation~~: Removed or replaced with “family structure”
+  - \[**Need to check**\] Family structure
+    - Replace “Raised by” variable
+    - Based on AHS-2 BQ, Page E2, Q8, asking “Up through age 16 years,
+      were you mostly raised with” (See [the questions in
+      AHS-2](./images/AHS2_BQ_E2Q8.png))
+    - If answered “Your two birth parents”, then categorized into “Two
+      birthparents”
+    - If answered “Two parents, but one or both…”, then categorized into
+      “Two parents\*” (one or both were not birth parent)
+    - If answered “A female birthparent only” or “A male birthparent
+      only”, then categorized into “Single-birthparent”
+    - If answered “Other” then categorized into “Other”
 - Psychologic characteristics (See [the questions in
   AHS-1](./images/AHS1_Q52.png))
   - Depression index score:

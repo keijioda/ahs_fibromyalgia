@@ -67,19 +67,20 @@ overlap_f <- overlap0 %>%
     parent_warm = factor(parent_warm, labels = c("None", "One", "Both")),
     
     # Parent situation -- Need to check
-    parent_situ = case_when(
-      raised %in% 1:2 ~ 0,
-      e2q9r1 == 1 | e2q9r2 == 1 | e2q9r3 == 1 | e2q9r4 == 1 ~ 1
-    ),
-    parent_situ = factor(parent_situ, labels = c("Married in home", "One died/sep/div")),
+    # parent_situ = case_when(
+    #   raised %in% 1:2 ~ 0,
+    #   e2q9r1 == 1 | e2q9r2 == 1 | e2q9r3 == 1 | e2q9r4 == 1 ~ 1
+    # ),
+    # parent_situ = factor(parent_situ, labels = c("Married in home", "One died/sep/div")),
     
     # Raised by -- Need to check
-    raised_by = case_when(
-      raised %in% 1:2 ~ 0,
-      raised %in% 3:4 ~ 1,
-      raised == 5     ~ 2
+    fam_struct = case_when(
+      raised == 1 ~ 0,
+      raised == 2 ~ 1,
+      raised %in% 3:4 ~ 2,
+      raised == 5     ~ 3
     ),
-    raised_by = factor(raised_by, labels = c("Both", "One", "Non-parents")),
+    fam_struct = factor(fam_struct, labels = c("Two birthparents", "Two parents*", "Single-birthparent", "Other")),
     
     # Personality traits
     # Note reversed signs -- Need to check
@@ -126,6 +127,7 @@ overlap_f <- overlap0 %>%
     * 127 females reported their FM diagnosis. None of these were diagnosed 20+ years ago
     * 64 females were treated in the last 12 month. Among them, 9 females did not indicate their diagnosis year
   * [**Need to check**] If diagnosed < 20 years ago or treated within the last 12 months, they were considered as incident cases
+    * According to this classification rule, there are 136 incident cases (4.3%) out of 3136 women
 
 ```{r fibro_crosstab, echo = FALSE}
 
@@ -149,8 +151,14 @@ overlap_f %>%
 * Early life experiences (See [the questions in AHS-1](./images/AHS1_Q37.png))
   * Warm parenting: `mwarm`, `fwarm`
   * Cold parenting: `mcold`, `fcold`
-  * Parent situation: 
-  * Raised by:
+  * ~~Parent situation~~: Removed or replaced with "family structure" 
+  * [**Need to check**] Family structure
+    * Replace "Raised by" variable
+    * Based on AHS-2 BQ, Page E2, Q8, asking "Up through age 16 years, were you mostly raised with" (See [the questions in AHS-2](./images/AHS2_BQ_E2Q8.png))
+    * If answered "Your two birth parents", then categorized into "Two birthparents"
+    * If answered "Two parents, but one or both...", then categorized into "Two parents*" (one or both were not birth parent)
+    * If answered "A female birthparent only" or "A male birthparent only", then categorized into "Single-birthparent"
+    * If answered "Other" then categorized into "Other"
 
 * Psychologic characteristics (See [the questions in AHS-1](./images/AHS1_Q52.png))
   * Depression index score:
@@ -216,8 +224,9 @@ table_vars <- c(
   "smoke2",
   "parent_warm",
   "parent_cold",
-  "parent_situ",
-  "raised_by",
+  # "parent_situ",
+  # "raised_by",
+  "fam_struct",
   "depression4",
   "hostility3",
   "authority4",
@@ -231,6 +240,7 @@ overlap_f %>%
     by = "fm_stat",
     statistic = list(all_continuous() ~ "{mean} ({sd})"),
     digits = all_continuous() ~ 1,
+    type = list(employ2 ~ "categorical"),
     missing = "always",
     missing_text = "(Missing)"
   ) %>%

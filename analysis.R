@@ -1,6 +1,6 @@
 
 # Required packages
-pacs <- c("tidyverse", "readxl", "janitor", "broom", "haven", "tableone")
+pacs <- c("tidyverse", "readxl", "janitor", "broom", "haven", "tableone", "gtsummary")
 sapply(pacs, require, character.only = TRUE)
 
 # Read SAS data
@@ -72,19 +72,20 @@ overlap_f <- overlap0 %>%
     parent_warm = factor(parent_warm, labels = c("None", "One", "Both")),
     
     # Parent situation -- Need to check
-    parent_situ = case_when(
-      raised %in% 1:2 ~ 0,
-      e2q9r1 == 1 | e2q9r2 == 1 | e2q9r3 == 1 | e2q9r4 == 1 ~ 1
-    ),
-    parent_situ = factor(parent_situ, labels = c("Married in home", "One died/sep/div")),
+    # parent_situ = case_when(
+    #   raised %in% 1:2 ~ 0,
+    #   e2q9r1 == 1 | e2q9r2 == 1 | e2q9r3 == 1 | e2q9r4 == 1 ~ 1
+    # ),
+    # parent_situ = factor(parent_situ, labels = c("Married in home", "One died/sep/div")),
     
     # Raised by -- Need to check
-    raised_by = case_when(
-      raised %in% 1:2 ~ 0,
-      raised %in% 3:4 ~ 1,
-      raised == 5     ~ 2
+    fam_struct = case_when(
+      raised == 1 ~ 0,
+      raised == 2 ~ 1,
+      raised %in% 3:4 ~ 2,
+      raised == 5     ~ 3
     ),
-    raised_by = factor(raised_by, labels = c("Both", "One", "Non-parents")),
+    fam_struct = factor(fam_struct, labels = c("Two birthparents", "Two parents*", "Single-birthparent", "Other")),
     
     # Personality traits
     # Note reversed signs -- Need to check
@@ -113,6 +114,16 @@ overlap_f <- overlap0 %>%
     jobstress = factor(jobstress, labels = c("Low frus or hi satis", "Hi frus & low satis"))
   )
 
+overlap_f %>% 
+  filter(raised == 1) %>% 
+  select(starts_with('e2')) %>% 
+  distinct() %>% 
+  print(n = Inf)
+
+overlap_f %>% 
+  filter(raised == 5) %>% 
+  count(across(starts_with("e2q9r")), sort = TRUE)
+
 
 # Fibromyalgia cases ------------------------------------------------------
 
@@ -139,6 +150,10 @@ overlap_f %>%
   filter(fibroy > 0 | fibro == 2) %>% 
   nrow()
 
+overlap_f %>% 
+  count(fibro_inc) %>% 
+  mutate(pct = n / sum(n) * 100)
+
 overlap_f %>%
   mutate(
     fibroy = factor(fibroy, labels = c("<5 yrs", "5-9 yrs", "10-14 yrs", "15-19 yrs", "20+ yrs"), levels = 1:5),
@@ -162,8 +177,9 @@ table_vars <- c(
   "smoke2",
   "parent_warm",
   "parent_cold",
-  "parent_situ",
-  "raised_by",
+  # "parent_situ",
+  # "raised_by",
+  "fam_struct",
   "depression4",
   "hostility3",
   "authority4",
@@ -171,13 +187,28 @@ table_vars <- c(
   "jobstress"
 )
 
-overlap_f %>% CreateTableOne(
-  vars = table_vars, 
-  strata = "fm_stat", 
-  data = .,
-  includeNA = TRUE
-  ) %>% 
-  print(showAllLevels = TRUE)
+# overlap_f %>% CreateTableOne(
+#   vars = table_vars, 
+#   strata = "fm_stat", 
+#   data = .,
+#   includeNA = TRUE
+#   ) %>% 
+#   print(showAllLevels = TRUE)
+
+overlap_f %>%
+  select(all_of(table_vars), fm_stat) %>% 
+  tbl_summary(
+    by = "fm_stat",
+    statistic = list(all_continuous() ~ "{mean} ({sd})"),
+    digits = all_continuous() ~ 1,
+    type = list(employ2 ~ "categorical"),
+    missing = "always",
+    missing_text = "(Missing)"
+  ) %>%
+  add_p(
+    test = list(all_continuous() ~ "t.test"),
+    pvalue_fun = label_style_pvalue(digits = 3),
+  )
 
 # Check the number of missing values
 overlap_f %>% 
@@ -194,8 +225,9 @@ overlap_f %>%
 ind_vars <- c(
   "parent_warm",
   "parent_cold",
-  "parent_situ",
-  "raised_by",
+  # "parent_situ",
+  # "raised_by",
+  "fam_struct",
   "depression4",
   "hostility3",
   "authority4",
@@ -229,7 +261,10 @@ unadj_OR <- map_dfr(unadjusted_results, tidy, .id = "predictor") %>%
     conf_low = exp(estimate - 1.96 * std.error),
     conf_high = exp(estimate + 1.96 * std.error)
   ) %>%
-  filter(term != "(Intercept)") %>% 
+  filter(term != "(Intercept)")
+
+unadj_OR <- unadj_OR %>%  
+  mutate(predictor = factor(predictor, levels = unique(unadj_OR$predictor))) %>% 
   select(predictor, term, odds_ratio, conf_low, conf_high, p.value)
 
 unadj_OR %>% 
