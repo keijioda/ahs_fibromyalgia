@@ -7,7 +7,7 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 
 # Required packages
-pacs <- c("tidyverse", "janitor", "broom", "haven", "tableone")
+pacs <- c("tidyverse", "janitor", "broom", "haven", "tableone", "gtsummary")
 sapply(pacs, require, character.only = TRUE)
 
 # Read SAS data
@@ -176,10 +176,30 @@ overlap_f %>%
     * 10-point likert scale
     * Scales were reversed for `rushed` and `fasteat` (see AHS-1 questionnaire) before summing up
     * Possible range: from 4 to 40
+    * [**Need to check**] The distribution of this score does **NOT** match with those shown in Table 3 of the manuscript
+
+* Job stress
+  * Based on AHS-1 Q21 and Q22 (See [the questions in AHS-1](./images/AHS1_Q21.png))
+    * `jobsat`: How well satisfied are you with job
+    * `jobfrus`: How often are you irritated or frustrated by your job
+    * If answered ("Not too satisfied" OR "Not at all satisfied") AND ("Always" OR "Often"), then categorized to "High frustration and low satisfaction"
+      * Otherwise categorized to "Low frustration or high satisfaction"
 
 ## Descriptive table
 
-```{r descriptive_table, echo = FALSE}
+* All of the followings were derived from **AHS-1 questionnaire**, except for....
+
+* See below for some of demographic/lifestyle variables:
+  * Education: Based on the AHS-1 variable `EducCQ`, categorized into 3 levels as shown in the table
+  * Employment: Based on AHS-1 Q20, categorized into 2 levels: Employed or Unemployed
+    * Employed: Self-employed, full time or part time employed
+    * Unemployed: Out of work, student, homemaker, volunteer worker, retired
+  * Marital status: Based on the AHS-1 variable `MaritalCQ`, categorized into 3 levels as shown in the table
+  * Smoking status: Based on AHS-1 Q27, categorized into 2 levels: Never or Ever
+
+* [**Need to check**] Note the number of missing values as well. **How should we handle the missing values?**
+
+```{r descriptive_table, echo = FALSE, out.width = "50%"}
 
 # Table 1 -----------------------------------------------------------------
 
@@ -205,13 +225,20 @@ table_vars <- c(
   "jobstress"
 )
 
-overlap_f %>% CreateTableOne(
-  vars = table_vars, 
-  strata = "fm_stat", 
-  data = .
+overlap_f %>%
+  select(all_of(table_vars), fm_stat) %>% 
+  tbl_summary(
+    by = "fm_stat",
+    statistic = list(all_continuous() ~ "{mean} ({sd})"),
+    digits = all_continuous() ~ 1,
+    missing = "always",
+    missing_text = "(Missing)"
+  ) %>%
+  add_p(
+    test = list(all_continuous() ~ "t.test"),
+    pvalue_fun = label_style_pvalue(digits = 3),
   ) %>% 
-  print(showAllLevels = TRUE) %>% 
-  kableone()
+  as_flex_table()
 
 ```
 

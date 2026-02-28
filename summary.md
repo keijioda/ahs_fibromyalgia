@@ -68,59 +68,40 @@ AHS Overlap Population Fibromyalgia Study
     - Scales were reversed for `rushed` and `fasteat` (see AHS-1
       questionnaire) before summing up
     - Possible range: from 4 to 40
+    - \[**Need to check**\] The distribution of this score does **NOT**
+      match with those shown in Table 3 of the manuscript
+- Job stress
+  - Based on AHS-1 Q21 and Q22 (See [the questions in
+    AHS-1](./images/AHS1_Q21.png))
+    - `jobsat`: How well satisfied are you with job
+    - `jobfrus`: How often are you irritated or frustrated by your job
+    - If answered (“Not too satisfied” OR “Not at all satisfied”) AND
+      (“Always” OR “Often”), then categorized to “High frustration and
+      low satisfaction”
+      - Otherwise categorized to “Low frustration or high satisfaction”
 
 ## Descriptive table
 
-|  | level | Non-case | Case | p | test |
-|:---|:---|:---|:---|:---|:---|
-| n |  | 3000 | 136 |  |  |
-| agecat (%) | 20-29 | 209 ( 7.0) | 17 (12.5) | 0.002 |  |
-|  | 30-39 | 757 (25.2) | 47 (34.6) |  |  |
-|  | 40-49 | 962 (32.1) | 41 (30.1) |  |  |
-|  | 50-59 | 822 (27.4) | 26 (19.1) |  |  |
-|  | 60+ | 250 ( 8.3) | 5 ( 3.7) |  |  |
-| agein (mean (SD)) |  | 45.50 (10.29) | 41.80 (10.02) | \<0.001 |  |
-| bmicat (%) | \<25 | 1957 (71.5) | 91 (76.5) | 0.215 |  |
-|  | 25-\<30 | 542 (19.8) | 23 (19.3) |  |  |
-|  | 30+ | 237 ( 8.7) | 5 ( 4.2) |  |  |
-| ahs1_bmi (mean (SD)) |  | 23.69 (4.17) | 22.87 (3.37) | 0.035 |  |
-| educat3 (%) | Less than HS | 630 (21.0) | 25 (18.4) | 0.678 |  |
-|  | Some college | 1439 (48.1) | 70 (51.5) |  |  |
-|  | College grad+ | 925 (30.9) | 41 (30.1) |  |  |
-| employ2 (%) | No | 1116 (37.8) | 56 (43.1) | 0.258 |  |
-|  | Yes | 1840 (62.2) | 74 (56.9) |  |  |
-| marital3 (%) | Not married | 173 ( 5.8) | 8 ( 5.9) | 0.702 |  |
-|  | Married | 2557 (85.3) | 113 (83.1) |  |  |
-|  | Wid/Div/Sep | 268 ( 8.9) | 15 (11.0) |  |  |
-| smoke2 (%) | Never | 2681 (90.4) | 105 (80.2) | \<0.001 |  |
-|  | Ever | 285 ( 9.6) | 26 (19.8) |  |  |
-| parent_warm (%) | None | 340 (11.3) | 20 (14.7) | 0.006 |  |
-|  | One | 880 (29.3) | 54 (39.7) |  |  |
-|  | Both | 1780 (59.3) | 62 (45.6) |  |  |
-| parent_cold (%) | None | 2040 (68.0) | 80 (58.8) | 0.048 |  |
-|  | One | 769 (25.6) | 42 (30.9) |  |  |
-|  | Both | 191 ( 6.4) | 14 (10.3) |  |  |
-| parent_situ (%) | Married in home | 2422 (88.9) | 113 (89.7) | 0.901 |  |
-|  | One died/sep/div | 302 (11.1) | 13 (10.3) |  |  |
-| raised_by (%) | Both | 2422 (89.3) | 113 (88.3) | 0.405 |  |
-|  | One | 231 ( 8.5) | 10 ( 7.8) |  |  |
-|  | Non-parents | 58 ( 2.1) | 5 ( 3.9) |  |  |
-| depression4 (%) | 0 | 1448 (50.6) | 48 (38.1) | \<0.001 |  |
-|  | 1 | 783 (27.4) | 31 (24.6) |  |  |
-|  | 2 | 443 (15.5) | 29 (23.0) |  |  |
-|  | 3 | 185 ( 6.5) | 18 (14.3) |  |  |
-| hostility3 (%) | 0 | 1296 (43.9) | 42 (32.3) | 0.011 |  |
-|  | 1 | 1238 (41.9) | 60 (46.2) |  |  |
-|  | 2 | 420 (14.2) | 28 (21.5) |  |  |
-| authority4 (%) | 0 | 630 (21.6) | 17 (13.2) | 0.110 |  |
-|  | 1 | 1414 (48.5) | 65 (50.4) |  |  |
-|  | 2 | 707 (24.3) | 38 (29.5) |  |  |
-|  | 3 | 162 ( 5.6) | 9 ( 7.0) |  |  |
-| urgency4 (%) | 4-14 | 156 ( 5.4) | 4 ( 3.1) | 0.682 |  |
-|  | 15-25 | 1446 (50.2) | 64 (49.6) |  |  |
-|  | 26-29 | 638 (22.1) | 31 (24.0) |  |  |
-|  | 30+ | 642 (22.3) | 30 (23.3) |  |  |
-| jobstress (%) | Low frus or hi satis | 2887 (97.7) | 124 (94.7) | 0.050 |  |
-|  | Hi frus & low satis | 67 ( 2.3) | 7 ( 5.3) |  |  |
+- All of the followings were derived from **AHS-1 questionnaire**,
+  except for….
+
+- See below for some of demographic/lifestyle variables:
+
+  - Education: Based on the AHS-1 variable `EducCQ`, categorized into 3
+    levels as shown in the table
+  - Employment: Based on AHS-1 Q20, categorized into 2 levels: Employed
+    or Unemployed
+    - Employed: Self-employed, full time or part time employed
+    - Unemployed: Out of work, student, homemaker, volunteer worker,
+      retired
+  - Marital status: Based on the AHS-1 variable `MaritalCQ`, categorized
+    into 3 levels as shown in the table
+  - Smoking status: Based on AHS-1 Q27, categorized into 2 levels: Never
+    or Ever
+
+- \[**Need to check**\] Note the number of missing values as well. **How
+  should we handle the missing values?**
+
+<img src="summary_files/figure-gfm/descriptive_table-1.png" alt="" width="50%" />
 
 ## Logistic models

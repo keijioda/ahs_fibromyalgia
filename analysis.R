@@ -174,10 +174,19 @@ table_vars <- c(
 overlap_f %>% CreateTableOne(
   vars = table_vars, 
   strata = "fm_stat", 
-  data = .
+  data = .,
+  includeNA = TRUE
   ) %>% 
   print(showAllLevels = TRUE)
 
+# Check the number of missing values
+overlap_f %>% 
+  select(all_of(table_vars)) %>%
+  select(-agecat, -bmicat) %>% 
+  map(~ sum(is.na(.x))) %>% 
+  data.frame(n.miss = unlist(.)) %>% 
+  select(n.miss) %>% 
+  mutate(pct_miss = round(n.miss / nrow(overlap_f) * 100, 2))
 
 # Exposure of interest ----------------------------------------------------
 
