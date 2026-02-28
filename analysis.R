@@ -1,0 +1,257 @@
+
+# Required packages
+pacs <- c("tidyverse", "readxl", "janitor", "broom", "haven", "tableone")
+sapply(pacs, require, character.only = TRUE)
+
+# Read SAS data
+# n.obs = 5067
+overlap0 <- read_excel("./data/choi_principle.xls", na = ".Z") %>% 
+  clean_names() %>% 
+  rename(analysisid = ahs1_qid_to_analysis_id)
+
+# Check ID variables
+# Should have 5067 -- all unique
+overlap0 %>% 
+  distinct(analysisid, ahs2_qid) %>% 
+  nrow()
+
+# Sex
+# n.females = 3136
+overlap0 %>% count(across(c(ahs1_sex, sex)))
+
+
+# Overlap population, female only -----------------------------------------
+
+# n = 3136 women
+overlap_f <- overlap0 %>% 
+  filter(sex == 0) %>% 
+  
+  # Define incident cases of fibromyalgia
+  mutate(
+    fibro_inc = case_when(
+      (fibroy >= 1 & fibroy <= 4) | fibro == 2 ~ 1,
+      TRUE ~ 0
+      ),
+    fm_stat = factor(fibro_inc, labels = c("Non-case", "Case"))
+  ) %>%
+
+  # Demographics and lifestyles
+  mutate(
+    agecat = cut(agein, breaks = c(20, 30, 40, 50, 60, Inf), right = FALSE),
+    agecat = factor(agecat, labels = c("20-29", "30-39", "40-49", "50-59", "60+")),
+    
+    bmicat = cut(ahs1_bmi, breaks = c(0, 25, 30, Inf), right = FALSE),
+    bmicat = factor(bmicat, labels = c("<25", "25-<30", "30+")),
+      
+    educat3 = recode(educcq, 1, 1, 1, 2, 3, 3),
+    educat3 = factor(educat3, labels = c("Less than HS", "Some college", "College grad+")),
+    
+    marital3 = recode(maritlcq, 1, 2, 3, 3),
+    marital3 = factor(marital3, labels = c("Not married", "Married", "Wid/Div/Sep")),
+    
+    smoke2 = recode(smoke, 1, 1, 0),
+    smoke2 = factor(smoke2, labels = c("Never", "Ever")),
+    
+    employ2 = factor(workpay, labels = c("No", "Yes"))
+  ) %>% 
+  
+  # Parenting
+  mutate(
+    parent_cold = case_when(
+      (mcold == 1 & fcold == 0) | (mcold == 0 & fcold == 1) ~ 1,
+      mcold == 1 & fcold == 1 ~ 2,
+      TRUE ~ 0
+    ),
+    parent_cold = factor(parent_cold, labels = c("None", "One", "Both")),
+    
+    parent_warm = case_when(
+      (mwarm == 1 & fwarm == 0) | (mwarm == 0 & fwarm == 1) ~ 1,
+      mwarm == 1 & fwarm == 1 ~ 2,
+      TRUE ~ 0
+    ),
+    parent_warm = factor(parent_warm, labels = c("None", "One", "Both")),
+    
+    # Parent situation -- Need to check
+    parent_situ = case_when(
+      raised %in% 1:2 ~ 0,
+      e2q9r1 == 1 | e2q9r2 == 1 | e2q9r3 == 1 | e2q9r4 == 1 ~ 1
+    ),
+    parent_situ = factor(parent_situ, labels = c("Married in home", "One died/sep/div")),
+    
+    # Raised by -- Need to check
+    raised_by = case_when(
+      raised %in% 1:2 ~ 0,
+      raised %in% 3:4 ~ 1,
+      raised == 5     ~ 2
+    ),
+    raised_by = factor(raised_by, labels = c("Both", "One", "Non-parents")),
+    
+    # Personality traits
+    # Note reversed signs -- Need to check
+    urgency     = (11 - rushed) + competv + tasks + (11 - fasteat),
+    urgency4    = cut(urgency, breaks = c(4, 15, 26, 30, Inf), right = FALSE),
+    urgency4    = factor(urgency4, labels = c("4-14", "15-25", "26-29", '30+')),
+    
+    depression  = (2 - overcome) + (2 - happy) + (family - 1),
+    depression4 = factor(depression),
+    
+    authority   = (2 - respect) + (2 - counton) + (2 - showfel),
+    authority4  = factor(authority),
+    
+    hostility   = case_when(
+      geteven == 2 & dislike == 1 ~ 0,
+      (geteven == 1 & dislike == 1) | (geteven == 2 & dislike == 2) ~ 1, 
+      geteven == 1 & dislike == 2 ~ 2,
+    ),
+    hostility3  = factor(hostility),
+    
+    jobstress = case_when(
+      jobsat %in% 1:2 | jobfrus %in% 3:4 ~ 0,
+      jobsat %in% 3:4 & jobfrus %in% 1:2 ~ 1
+    ),
+    # jobstress = ifelse(is.na(jobsat) | is.na(jobfrus), NA_integer_, jobstress),
+    jobstress = factor(jobstress, labels = c("Low frus or hi satis", "Hi frus & low satis"))
+  )
+
+
+# Fibromyalgia cases ------------------------------------------------------
+
+# Fibromyalgia variables -- years and treated
+names(overlap_f) %>% 
+  grep("fibro", ., value = TRUE) %>% 
+  map(~ count(overlap_f, across(all_of(.x))))
+
+# Those who have ever diagnosed among females (self-report)
+# n = 127
+overlap_f %>% 
+  filter(fibroy > 0) %>% 
+  nrow()
+
+# Those who have treated in the last 12 mo among females (self-report)
+# n = 64
+overlap_f %>% 
+  filter(fibro == 2) %>% 
+  nrow()
+
+# Those who diagnosed or treated among females
+# n = 136
+overlap_f %>% 
+  filter(fibroy > 0 | fibro == 2) %>% 
+  nrow()
+
+overlap_f %>%
+  mutate(
+    fibroy = factor(fibroy, labels = c("<5 yrs", "5-9 yrs", "10-14 yrs", "15-19 yrs", "20+ yrs"), levels = 1:5),
+    fibro  = factor(fibro,  labels = c("No", "Yes"))
+    ) %>% 
+  tabyl(fibroy, fibro) %>% 
+  adorn_totals(where = c("row", "col"))
+
+ # Table 1 -----------------------------------------------------------------
+
+# Variables to be included 
+# It appears that all vars come from AHS-1
+table_vars <- c(
+  "agecat",
+  "agein",
+  "bmicat",
+  "ahs1_bmi",
+  "educat3",
+  "employ2",
+  "marital3",
+  "smoke2",
+  "parent_warm",
+  "parent_cold",
+  "parent_situ",
+  "raised_by",
+  "depression4",
+  "hostility3",
+  "authority4",
+  "urgency4",
+  "jobstress"
+)
+
+overlap_f %>% CreateTableOne(
+  vars = table_vars, 
+  strata = "fm_stat", 
+  data = .
+  ) %>% 
+  print(showAllLevels = TRUE)
+
+
+# Exposure of interest ----------------------------------------------------
+
+# Exposure variables of interest
+ind_vars <- c(
+  "parent_warm",
+  "parent_cold",
+  "parent_situ",
+  "raised_by",
+  "depression4",
+  "hostility3",
+  "authority4",
+  "urgency4",
+  "jobstress"
+)
+
+# Covariates
+covars <- c(
+  "agein",
+  "ahs1_bmi",
+  "educat3",
+  "employ2",
+  "marital3"
+)
+
+# Logistic regression: Unadjusted ORs -------------------------------------
+
+# Unadjusted ORs
+# Create models
+model_formulas <- map(ind_vars, ~reformulate(.x, response = "fibro_inc")) %>% 
+  setNames(ind_vars)
+
+# Run models
+unadjusted_results <- map(model_formulas, ~glm(.x, data = overlap_f, family = "binomial"))
+
+# Get unadjusted ORs
+unadj_OR <- map_dfr(unadjusted_results, tidy, .id = "predictor") %>%
+  mutate(
+    odds_ratio = exp(estimate), 
+    conf_low = exp(estimate - 1.96 * std.error),
+    conf_high = exp(estimate + 1.96 * std.error)
+  ) %>%
+  filter(term != "(Intercept)") %>% 
+  select(predictor, term, odds_ratio, conf_low, conf_high, p.value)
+
+unadj_OR %>% 
+  split(.$predictor)
+
+unadj_OR %>% 
+  write_csv("./results/All_models_unadjusted_ORs.csv")
+
+
+# Logistic regression: Adjusted ORs ---------------------------------------
+
+# Adjusted ORs
+# Create models
+model_formulas <- map(ind_vars, ~reformulate(c(.x, covars), response = "fibro_inc")) %>% 
+  setNames(ind_vars)
+
+# Run models
+adjusted_results <- map(model_formulas, ~glm(.x, data = overlap_f, family = "binomial"))
+
+# Get adjusted ORs
+adjusted_OR <- map_dfr(adjusted_results, tidy, .id = "predictor") %>%
+  mutate(
+    odds_ratio = exp(estimate), 
+    conf_low = exp(estimate - 1.96 * std.error),
+    conf_high = exp(estimate + 1.96 * std.error)
+  ) %>%
+  filter(term != "(Intercept)") %>% 
+  select(predictor, term, odds_ratio, conf_low, conf_high, p.value)
+
+adjusted_OR %>% 
+  split(.$predictor)
+
+adjusted_OR %>% 
+  write_csv("./results/All_models_adjusted_ORs.csv")

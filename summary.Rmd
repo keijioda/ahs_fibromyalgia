@@ -1,0 +1,218 @@
+---
+title: "AHS Overlap Population Fibromyalgia Study"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Required packages
+pacs <- c("tidyverse", "janitor", "broom", "haven", "tableone")
+sapply(pacs, require, character.only = TRUE)
+
+# Read SAS data
+# n.obs = 5067
+overlap0 <- read_sas("./data/choi_master.sas7bdat") %>% 
+  clean_names()
+
+# Overlap population, female only -----------------------------------------
+
+# n = 3136
+overlap_f <- overlap0 %>% 
+  filter(sex == 0) %>% 
+  
+  # Define incident cases of fibromyalgia
+  mutate(
+    fibro_inc = case_when(
+      (fibroy >= 1 & fibroy <= 4) | fibro == 2 ~ 1,
+      TRUE ~ 0
+      ),
+    fm_stat = factor(fibro_inc, labels = c("Non-case", "Case"))
+  ) %>% 
+
+  # Demographics and lifestyles
+  mutate(
+    agecat = cut(agein, breaks = c(20, 30, 40, 50, 60, Inf), right = FALSE),
+    agecat = factor(agecat, labels = c("20-29", "30-39", "40-49", "50-59", "60+")),
+    
+    bmicat = cut(ahs1_bmi, breaks = c(0, 25, 30, Inf), right = FALSE),
+    bmicat = factor(bmicat, labels = c("<25", "25-<30", "30+")),
+      
+    educat3 = recode(educcq, 1, 1, 1, 2, 3, 3),
+    educat3 = factor(educat3, labels = c("Less than HS", "Some college", "College grad+")),
+    
+    marital3 = recode(maritlcq, 1, 2, 3, 3),
+    marital3 = factor(marital3, labels = c("Not married", "Married", "Wid/Div/Sep")),
+    
+    smoke2 = recode(smoke, 1, 1, 0),
+    smoke2 = factor(smoke2, labels = c("Never", "Ever")),
+    
+    employ2 = factor(workpay, labels = c("No", "Yes"))
+  ) %>% 
+  
+  # Parenting
+  mutate(
+    parent_cold = case_when(
+      (mcold == 1 & fcold == 0) | (mcold == 0 & fcold == 1) ~ 1,
+      mcold == 1 & fcold == 1 ~ 2,
+      TRUE ~ 0
+    ),
+    parent_cold = factor(parent_cold, labels = c("None", "One", "Both")),
+    
+    parent_warm = case_when(
+      (mwarm == 1 & fwarm == 0) | (mwarm == 0 & fwarm == 1) ~ 1,
+      mwarm == 1 & fwarm == 1 ~ 2,
+      TRUE ~ 0
+    ),
+    parent_warm = factor(parent_warm, labels = c("None", "One", "Both")),
+    
+    # Parent situation -- Need to check
+    parent_situ = case_when(
+      raised %in% 1:2 ~ 0,
+      e2q9r1 == 1 | e2q9r2 == 1 | e2q9r3 == 1 | e2q9r4 == 1 ~ 1
+    ),
+    parent_situ = factor(parent_situ, labels = c("Married in home", "One died/sep/div")),
+    
+    # Raised by -- Need to check
+    raised_by = case_when(
+      raised %in% 1:2 ~ 0,
+      raised %in% 3:4 ~ 1,
+      raised == 5     ~ 2
+    ),
+    raised_by = factor(raised_by, labels = c("Both", "One", "Non-parents")),
+    
+    # Personality traits
+    # Note reversed signs -- Need to check
+    urgency     = (11 - rushed) + competv + tasks + (11 - fasteat),
+    urgency4    = cut(urgency, breaks = c(4, 15, 26, 30, Inf), right = FALSE),
+    urgency4    = factor(urgency4, labels = c("4-14", "15-25", "26-29", '30+')),
+    
+    depression  = (2 - overcome) + (2 - happy) + (family - 1),
+    depression4 = factor(depression),
+    
+    authority   = (2 - respect) + (2 - counton) + (2 - showfel),
+    authority4  = factor(authority),
+    
+    hostility   = case_when(
+      geteven == 2 & dislike == 1 ~ 0,
+      (geteven == 1 & dislike == 1) | (geteven == 2 & dislike == 2) ~ 1, 
+      geteven == 1 & dislike == 2 ~ 2,
+    ),
+    hostility3  = factor(hostility),
+    
+    jobstress = case_when(
+      jobsat %in% 1:2 | jobfrus %in% 3:4 ~ 0,
+      jobsat %in% 3:4 & jobfrus %in% 1:2 ~ 1
+    ),
+    # jobstress = ifelse(is.na(jobsat) | is.na(jobfrus), NA_integer_, jobstress),
+    jobstress = factor(jobstress, labels = c("Low frus or hi satis", "Hi frus & low satis"))
+  )
+
+```
+
+## Datasets 
+
+* The overlap population between AHS-1 and AHS-2
+  * See the manuscript how record linkage was done
+
+* Contains 5067 subjects. Among them, there were n = 3136 women.
+
+## Outcome
+
+* Self-reported diagnosis of fibromyalgia from **AHS-2 baseline** questionnaire ([Page A4, under the section of musculoskeletal system](https://wiki.ahs2.org/_media/baseline:ahs_baseline_v3_-_page_a4.jpg))
+  * Years since first diagnosis: Less than 5 years ago, 5-9 yrs ago, 10-14 yrs ago, 20+ yrs ago
+  * Have you been treated for this in the last 12 months?: No or Yes
+  * See the crosstab below
+    * 127 females reported their FM diagnosis. None of these were diagnosed 20+ years ago
+    * 64 females were treated in the last 12 month. Among them, 9 females did not indicate their diagnosis year
+  * [**Need to check**] If diagnosed < 20 years ago or treated within the last 12 months, they were considered as incident cases
+
+```{r fibro_crosstab, echo = FALSE}
+
+# Crosstab between fibroy and fibro
+overlap_f %>%
+  mutate(
+    fibroy = factor(fibroy, labels = c("<5 yrs", "5-9 yrs", "10-14 yrs", "15-19 yrs", "20+ yrs"), levels = 1:5),
+    fibro  = factor(fibro,  labels = c("No", "Yes"))
+    ) %>% 
+  tabyl(fibroy, fibro) %>% 
+  adorn_totals(where = c("row", "col")) %>% 
+  knitr::kable()
+
+```
+
+## Exposure of interest
+
+* All of the followings were derived from **AHS-1 questionnaire**, except for.... Variable names in the data were indicated below
+  * See also: Table 1 of the manuscript
+
+* Early life experiences (See [the questions in AHS-1](./images/AHS1_Q37.png))
+  * Warm parenting: `mwarm`, `fwarm`
+  * Cold parenting: `mcold`, `fcold`
+  * Parent situation: 
+  * Raised by:
+
+* Psychologic characteristics (See [the questions in AHS-1](./images/AHS1_Q52.png))
+  * Depression index score:
+    * `family`, `happy`, `overcome`
+    * yes/no
+    * A negative response gets 1, otherwise 0
+    * Points were summed up, ranging from 0 to 3
+    
+  * Hostility index score:
+    * `dislike`, `geteven`
+    * yes/no or agree/disagree
+    * A negative response gets 1, otherwise 0
+    * Points were summed up, ranging from 0 to 2
+    
+  * Authoritarian index score:
+    * `counton`, `showfel`, `respect`
+    * agree/disagree
+    * A negative response gets 1, otherwise 0
+    * Points were summed up, ranging from 0 to 3
+    
+  * Time urgency index score:  (See [the questions in AHS-1](./images/AHS1_Q61.png))
+    * `rushed`, `competv`, `tasks`, `fasteat`
+    * 10-point likert scale
+    * Scales were reversed for `rushed` and `fasteat` (see AHS-1 questionnaire) before summing up
+    * Possible range: from 4 to 40
+
+## Descriptive table
+
+```{r descriptive_table, echo = FALSE}
+
+# Table 1 -----------------------------------------------------------------
+
+# Variables to be included 
+# It appears that all vars come from AHS-1
+table_vars <- c(
+  "agecat",
+  "agein",
+  "bmicat",
+  "ahs1_bmi",
+  "educat3",
+  "employ2",
+  "marital3",
+  "smoke2",
+  "parent_warm",
+  "parent_cold",
+  "parent_situ",
+  "raised_by",
+  "depression4",
+  "hostility3",
+  "authority4",
+  "urgency4",
+  "jobstress"
+)
+
+overlap_f %>% CreateTableOne(
+  vars = table_vars, 
+  strata = "fm_stat", 
+  data = .
+  ) %>% 
+  print(showAllLevels = TRUE) %>% 
+  kableone()
+
+```
+
+## Logistic models
