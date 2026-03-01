@@ -271,7 +271,7 @@ overlap_f %>%
 
 ## Logistic models
 
-* For each exposure variable of interest, first we fit logistic models as incident fibromyalgia as the outcome to obtain unadjusted odds ratios associated with the exposure variable
+* For each exposure variable of interest, first we fit logistic models using incident fibromyalgia as the outcome to obtain unadjusted odds ratios associated with the exposure variable
 
 
 ### Unadjusted odds ratios
@@ -356,6 +356,7 @@ options(knitr.kable.NA = "")
 unadj_OR %>% 
   left_join(trend_p_df, by = "predictor") %>% 
   group_by(predictor) %>%
+  mutate(term = gsub(paste0(ind_vars, collapse = "|"), "", term)) %>% 
   mutate(across(odds_ratio:conf_high, round, 2)) %>%
   mutate(
     p.value = round(p.value, 4),
@@ -420,6 +421,7 @@ trend_p_df <- data.frame(trend.p = trend_p) %>%
 
 adjusted_OR %>% 
   filter(grepl(paste0(ind_vars, collapse = "|"), term)) %>% 
+  mutate(term = gsub(paste0(ind_vars, collapse = "|"), "", term)) %>% 
   left_join(trend_p_df, by = "predictor") %>% 
   group_by(predictor) %>%
   mutate(across(odds_ratio:conf_high, round, 2)) %>%

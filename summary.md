@@ -128,7 +128,7 @@ AHS Overlap Population Fibromyalgia Study
 ## Logistic models
 
 - For each exposure variable of interest, first we fit logistic models
-  as incident fibromyalgia as the outcome to obtain unadjusted odds
+  using incident fibromyalgia as the outcome to obtain unadjusted odds
   ratios associated with the exposure variable
 
 ### Unadjusted odds ratios
@@ -141,27 +141,27 @@ AHS Overlap Population Fibromyalgia Study
 - There was a significant trend for warm/cold parenting, depression,
   hostility, authority
 
-| predictor | term | odds_ratio | conf_low | conf_high | p.value | trend.p |
-|:---|:---|---:|---:|---:|---:|:---|
-| parent_warm | parent_warmOne | 1.76 | 1.21 | 2.56 | 0.0030 | 0.0051 |
-| parent_warm | parent_warmNone | 1.69 | 1.01 | 2.83 | 0.0471 |  |
-| parent_cold | parent_coldOne | 1.39 | 0.95 | 2.04 | 0.0897 | 0.0144 |
-| parent_cold | parent_coldBoth | 1.87 | 1.04 | 3.36 | 0.0367 |  |
-| fam_struct | fam_structTwo parents\* | 2.03 | 1.17 | 3.52 | 0.0116 | 0.1382 |
-| fam_struct | fam_structSingle-birthparent | 1.00 | 0.51 | 1.94 | 0.9993 |  |
-| fam_struct | fam_structOther | 1.99 | 0.78 | 5.08 | 0.1493 |  |
-| depression4 | depression41 | 1.19 | 0.75 | 1.89 | 0.4491 | 4.1e-05 |
-| depression4 | depression42 | 1.97 | 1.23 | 3.17 | 0.0048 |  |
-| depression4 | depression43 | 2.94 | 1.67 | 5.15 | 0.0002 |  |
-| hostility3 | hostility31 | 1.50 | 1.00 | 2.24 | 0.0497 | 0.0030 |
-| hostility3 | hostility32 | 2.06 | 1.26 | 3.36 | 0.0040 |  |
-| authority4 | authority41 | 1.70 | 0.99 | 2.93 | 0.0541 | 0.0248 |
-| authority4 | authority42 | 1.99 | 1.11 | 3.56 | 0.0203 |  |
-| authority4 | authority43 | 2.06 | 0.90 | 4.70 | 0.0867 |  |
-| urgency4 | urgency415-25 | 1.73 | 0.62 | 4.80 | 0.2959 | 0.4409 |
-| urgency4 | urgency426-29 | 1.89 | 0.66 | 5.45 | 0.2354 |  |
-| urgency4 | urgency430+ | 1.82 | 0.63 | 5.25 | 0.2661 |  |
-| jobstress | jobstressHi frus & low satis | 2.43 | 1.09 | 5.41 | 0.0292 |  |
+| predictor   | term                | odds_ratio | conf_low | conf_high | p.value | trend.p |
+|:------------|:--------------------|-----------:|---------:|----------:|--------:|:--------|
+| parent_warm | One                 |       1.76 |     1.21 |      2.56 |  0.0030 | 0.0051  |
+| parent_warm | None                |       1.69 |     1.01 |      2.83 |  0.0471 |         |
+| parent_cold | One                 |       1.39 |     0.95 |      2.04 |  0.0897 | 0.0144  |
+| parent_cold | Both                |       1.87 |     1.04 |      3.36 |  0.0367 |         |
+| fam_struct  | Two parents\*       |       2.03 |     1.17 |      3.52 |  0.0116 | 0.1382  |
+| fam_struct  | Single-birthparent  |       1.00 |     0.51 |      1.94 |  0.9993 |         |
+| fam_struct  | Other               |       1.99 |     0.78 |      5.08 |  0.1493 |         |
+| depression4 | 1                   |       1.19 |     0.75 |      1.89 |  0.4491 | 4.1e-05 |
+| depression4 | 2                   |       1.97 |     1.23 |      3.17 |  0.0048 |         |
+| depression4 | 3                   |       2.94 |     1.67 |      5.15 |  0.0002 |         |
+| hostility3  | 1                   |       1.50 |     1.00 |      2.24 |  0.0497 | 0.0030  |
+| hostility3  | 2                   |       2.06 |     1.26 |      3.36 |  0.0040 |         |
+| authority4  | 1                   |       1.70 |     0.99 |      2.93 |  0.0541 | 0.0248  |
+| authority4  | 2                   |       1.99 |     1.11 |      3.56 |  0.0203 |         |
+| authority4  | 3                   |       2.06 |     0.90 |      4.70 |  0.0867 |         |
+| urgency4    | 15-25               |       1.73 |     0.62 |      4.80 |  0.2959 | 0.4409  |
+| urgency4    | 26-29               |       1.89 |     0.66 |      5.45 |  0.2354 |         |
+| urgency4    | 30+                 |       1.82 |     0.63 |      5.25 |  0.2661 |         |
+| jobstress   | Hi frus & low satis |       2.43 |     1.09 |      5.41 |  0.0292 |         |
 
 ### Adjusted odds ratios
 
@@ -179,24 +179,24 @@ AHS Overlap Population Fibromyalgia Study
 - There was a significant trend for warm/cold parenting, depression,
   hostility, authority
 
-| predictor | term | odds_ratio | conf_low | conf_high | p.value | trend.p |
-|:---|:---|---:|---:|---:|---:|:---|
-| parent_warm | parent_warmOne | 1.89 | 1.26 | 2.83 | 0.0020 | 0.0145 |
-| parent_warm | parent_warmNone | 1.53 | 0.83 | 2.81 | 0.1696 |  |
-| parent_cold | parent_coldOne | 1.55 | 1.03 | 2.34 | 0.0364 | 0.0065 |
-| parent_cold | parent_coldBoth | 2.05 | 1.08 | 3.90 | 0.0285 |  |
-| fam_struct | fam_structTwo parents\* | 2.07 | 1.14 | 3.76 | 0.0173 | 0.1706 |
-| fam_struct | fam_structSingle-birthparent | 1.24 | 0.63 | 2.44 | 0.5355 |  |
-| fam_struct | fam_structOther | 1.40 | 0.42 | 4.60 | 0.5828 |  |
-| depression4 | depression41 | 1.29 | 0.79 | 2.12 | 0.3075 | 7.8e-05 |
-| depression4 | depression42 | 2.05 | 1.22 | 3.44 | 0.0066 |  |
-| depression4 | depression43 | 3.14 | 1.69 | 5.83 | 0.0003 |  |
-| hostility3 | hostility31 | 1.46 | 0.95 | 2.25 | 0.0865 | 0.0179 |
-| hostility3 | hostility32 | 1.85 | 1.08 | 3.17 | 0.0246 |  |
-| authority4 | authority41 | 1.66 | 0.92 | 2.97 | 0.0909 | 0.0071 |
-| authority4 | authority42 | 2.10 | 1.12 | 3.95 | 0.0215 |  |
-| authority4 | authority43 | 2.79 | 1.18 | 6.60 | 0.0200 |  |
-| urgency4 | urgency415-25 | 1.92 | 0.59 | 6.26 | 0.2782 | 0.3896 |
-| urgency4 | urgency426-29 | 2.12 | 0.63 | 7.18 | 0.2256 |  |
-| urgency4 | urgency430+ | 2.10 | 0.62 | 7.12 | 0.2342 |  |
-| jobstress | jobstressHi frus & low satis | 2.71 | 1.19 | 6.14 | 0.0172 |  |
+| predictor   | term                | odds_ratio | conf_low | conf_high | p.value | trend.p |
+|:------------|:--------------------|-----------:|---------:|----------:|--------:|:--------|
+| parent_warm | One                 |       1.89 |     1.26 |      2.83 |  0.0020 | 0.0145  |
+| parent_warm | None                |       1.53 |     0.83 |      2.81 |  0.1696 |         |
+| parent_cold | One                 |       1.55 |     1.03 |      2.34 |  0.0364 | 0.0065  |
+| parent_cold | Both                |       2.05 |     1.08 |      3.90 |  0.0285 |         |
+| fam_struct  | Two parents\*       |       2.07 |     1.14 |      3.76 |  0.0173 | 0.1706  |
+| fam_struct  | Single-birthparent  |       1.24 |     0.63 |      2.44 |  0.5355 |         |
+| fam_struct  | Other               |       1.40 |     0.42 |      4.60 |  0.5828 |         |
+| depression4 | 1                   |       1.29 |     0.79 |      2.12 |  0.3075 | 7.8e-05 |
+| depression4 | 2                   |       2.05 |     1.22 |      3.44 |  0.0066 |         |
+| depression4 | 3                   |       3.14 |     1.69 |      5.83 |  0.0003 |         |
+| hostility3  | 1                   |       1.46 |     0.95 |      2.25 |  0.0865 | 0.0179  |
+| hostility3  | 2                   |       1.85 |     1.08 |      3.17 |  0.0246 |         |
+| authority4  | 1                   |       1.66 |     0.92 |      2.97 |  0.0909 | 0.0071  |
+| authority4  | 2                   |       2.10 |     1.12 |      3.95 |  0.0215 |         |
+| authority4  | 3                   |       2.79 |     1.18 |      6.60 |  0.0200 |         |
+| urgency4    | 15-25               |       1.92 |     0.59 |      6.26 |  0.2782 | 0.3896  |
+| urgency4    | 26-29               |       2.12 |     0.63 |      7.18 |  0.2256 |         |
+| urgency4    | 30+                 |       2.10 |     0.62 |      7.12 |  0.2342 |         |
+| jobstress   | Hi frus & low satis |       2.71 |     1.19 |      6.14 |  0.0172 |         |
