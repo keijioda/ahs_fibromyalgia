@@ -219,6 +219,17 @@ overlap_f %>%
   select(n.miss) %>% 
   mutate(pct_miss = round(n.miss / nrow(overlap_f) * 100, 2))
 
+
+# Distribution of continuous covariates -----------------------------------
+
+overlap_f %>% 
+  select(agein, ahs1_bmi) %>% 
+  pivot_longer(1:2, names_to = "Variable", values_to = "Value") %>% 
+  ggplot(aes(x = Value)) +
+  geom_histogram(aes(y = after_stat(density)), fill = "gray") +
+  geom_density(color = "cornflowerblue", linewidth = 1) +
+  facet_wrap(~ Variable, scales = "free")
+
 # Exposure of interest ----------------------------------------------------
 
 # Exposure variables of interest
@@ -246,13 +257,22 @@ covars <- c(
 
 # Logistic regression: Unadjusted ORs -------------------------------------
 
+# Reverse order for parent_warm
+overlap_f2 <- overlap_f %>% 
+  mutate(parent_warm = fct_rev(parent_warm))
+
 # Unadjusted ORs
 # Create models
 model_formulas <- map(ind_vars, ~reformulate(.x, response = "fibro_inc")) %>% 
   setNames(ind_vars)
 
 # Run models
-unadjusted_results <- map(model_formulas, ~glm(.x, data = overlap_f, family = "binomial"))
+unadjusted_results <- map(model_formulas, ~glm(.x, data = overlap_f2, family = "binomial"))
+
+# Multivariate Wald tests
+# Significant: parent_warm, depression4, hostility3
+unadjusted_results %>% 
+  map_dfc(~anova(.x)[["Pr(>Chi)"]]) 
 
 # Get unadjusted ORs
 unadj_OR <- map_dfr(unadjusted_results, tidy, .id = "predictor") %>%
@@ -265,14 +285,35 @@ unadj_OR <- map_dfr(unadjusted_results, tidy, .id = "predictor") %>%
 
 unadj_OR <- unadj_OR %>%  
   mutate(predictor = factor(predictor, levels = unique(unadj_OR$predictor))) %>% 
-  select(predictor, term, odds_ratio, conf_low, conf_high, p.value)
+  select(predictor, term, odds_ratio, conf_low, conf_high, p.value) %>% 
+  mutate(term = gsub(paste0(ind_vars, collapse = "|"), "", term))
+
+unadj_OR %>% split(.$predictor)
+
+# unadj_OR %>% 
+#   write_csv("./results/All_models_unadjusted_ORs.csv")
+
+# Trend p-values
+ind_vars_num <- paste0("as.numeric(", ind_vars, ")")
+model_formulas <- map(ind_vars_num, ~reformulate(.x, response = "fibro_inc")) %>% 
+  setNames(ind_vars)
+
+trend_p <- model_formulas %>% 
+  map(~ glm(.x, data = overlap_f2, family = "binomial")) %>% 
+  map_dbl(~ coef(summary(.x))[2, "Pr(>|z|)"])
+
+trend_p_df <- data.frame(trend_p = trend_p) %>% 
+  rownames_to_column("predictor") %>% 
+  filter(predictor != "jobstress") %>% 
+  mutate(trend_p = format.pval(trend_p, digits = 2))
+
+map(trend_p_df, class)
 
 unadj_OR %>% 
-  split(.$predictor)
-
-unadj_OR %>% 
-  write_csv("./results/All_models_unadjusted_ORs.csv")
-
+  left_join(trend_p_df, by = "predictor") %>% 
+  group_by(predictor) %>%
+  mutate(trend_p = if_else(row_number() == 1, trend_p, NA_character_)) %>%
+  ungroup()
 
 # Logistic regression: Adjusted ORs ---------------------------------------
 
@@ -282,7 +323,7 @@ model_formulas <- map(ind_vars, ~reformulate(c(.x, covars), response = "fibro_in
   setNames(ind_vars)
 
 # Run models
-adjusted_results <- map(model_formulas, ~glm(.x, data = overlap_f, family = "binomial"))
+adjusted_results <- map(model_formulas, ~glm(.x, data = overlap_f2, family = "binomial"))
 
 # Get adjusted ORs
 adjusted_OR <- map_dfr(adjusted_results, tidy, .id = "predictor") %>%
@@ -292,10 +333,28 @@ adjusted_OR <- map_dfr(adjusted_results, tidy, .id = "predictor") %>%
     conf_high = exp(estimate + 1.96 * std.error)
   ) %>%
   filter(term != "(Intercept)") %>% 
-  select(predictor, term, odds_ratio, conf_low, conf_high, p.value)
+  select(predictor, term, odds_ratio, conf_low, conf_high, p.value) 
+
+# adjusted_OR %>% 
+#   write_csv("./results/All_models_adjusted_ORs.csv")
+
+# Trend p-values
+ind_vars_num <- paste0("as.numeric(", ind_vars, ")")
+model_formulas <- map(ind_vars_num, ~reformulate(c(.x, covars), response = "fibro_inc")) %>% 
+  setNames(ind_vars)
+
+trend_p <- model_formulas %>% 
+  map(~ glm(.x, data = overlap_f2, family = "binomial")) %>% 
+  map_dbl(~ coef(summary(.x))[2, "Pr(>|z|)"])
+
+trend_p_df <- data.frame(trend_p = trend_p) %>% 
+  rownames_to_column("predictor") %>% 
+  filter(predictor != "jobstress") %>% 
+  mutate(trend_p = format.pval(trend_p, digits = 2))
 
 adjusted_OR %>% 
-  split(.$predictor)
-
-adjusted_OR %>% 
-  write_csv("./results/All_models_adjusted_ORs.csv")
+  filter(grepl(paste0(ind_vars, collapse = "|"), term)) %>% 
+  left_join(trend_p_df, by = "predictor") %>% 
+  group_by(predictor) %>%
+  mutate(trend_p = if_else(row_number() == 1, trend_p, NA_character_)) %>%
+  ungroup()

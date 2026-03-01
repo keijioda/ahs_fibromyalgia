@@ -145,7 +145,7 @@ overlap_f %>%
 
 ## Exposure of interest
 
-* All of the followings were derived from **AHS-1 questionnaire**, except for.... Variable names in the data were indicated below
+* All of the followings were derived from **AHS-1 questionnaire**, except for family structure in early life. Variable names in the data were indicated below
   * See also: Table 1 of the manuscript
 
 * Early life experiences (See [the questions in AHS-1](./images/AHS1_Q37.png))
@@ -195,7 +195,7 @@ overlap_f %>%
 
 ## Descriptive table
 
-* All of the followings were derived from **AHS-1 questionnaire**, except for....
+* All of the followings were derived from **AHS-1 questionnaire**, except for family structure (see the section above)
 
 * See below for some of demographic/lifestyle variables:
   * Education: Based on the AHS-1 variable `EducCQ`, categorized into 3 levels as shown in the table
@@ -205,7 +205,7 @@ overlap_f %>%
   * Marital status: Based on the AHS-1 variable `MaritalCQ`, categorized into 3 levels as shown in the table
   * Smoking status: Based on AHS-1 Q27, categorized into 2 levels: Never or Ever
 
-* [**Need to check**] Note the number of missing values as well. **How should we handle the missing values?**
+* [**Need to check**] Note the number of missing values as well. **How should we handle the missing values?** Any inclusion/exclusion criteria?
 
 ```{r descriptive_table, echo = FALSE, out.width = "50%"}
 
@@ -252,4 +252,183 @@ overlap_f %>%
 
 ```
 
+## Distribution for age and BMI
+
+* See below for distributions of age and BMI:
+
+
+```{r check_distribution, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 3}
+
+overlap_f %>% 
+  select(agein, ahs1_bmi) %>% 
+  pivot_longer(1:2, names_to = "Variable", values_to = "Value") %>% 
+  ggplot(aes(x = Value)) +
+  geom_histogram(aes(y = after_stat(density)), fill = "gray") +
+  geom_density(color = "cornflowerblue", linewidth = 1) +
+  facet_wrap(~ Variable, scales = "free")
+
+```
+
 ## Logistic models
+
+* For each exposure variable of interest, first we fit logistic models as incident fibromyalgia as the outcome to obtain unadjusted odds ratios associated with the exposure variable
+
+
+### Unadjusted odds ratios
+
+* Unadjusted odds ratios for each exposure variable are shown below
+  * Note that reference groups are not shown in the table
+    * For warm parenting, the reference is "Both"
+    * For other exposure variables, the reference is the first level shown in the descriptive table 
+    
+* There was a significant trend for warm/cold parenting, depression, hostility, authority
+
+```{r unadjusted_odds_ratios, echo = FALSE, warning = FALSE, message = FALSE}
+
+# Exposure of interest ----------------------------------------------------
+
+# Exposure variables of interest
+ind_vars <- c(
+  "parent_warm",
+  "parent_cold",
+  # "parent_situ",
+  # "raised_by",
+  "fam_struct",
+  "depression4",
+  "hostility3",
+  "authority4",
+  "urgency4",
+  "jobstress"
+)
+
+# Covariates
+covars <- c(
+  "agein",
+  "ahs1_bmi",
+  "educat3",
+  "employ2",
+  "marital3"
+)
+
+# Logistic regression: Unadjusted ORs -------------------------------------
+
+# Reverse order for parent_warm
+overlap_f2 <- overlap_f %>% 
+  mutate(parent_warm = fct_rev(parent_warm))
+
+# Unadjusted ORs
+# Create models
+model_formulas <- map(ind_vars, ~reformulate(.x, response = "fibro_inc")) %>% 
+  setNames(ind_vars)
+
+# Run models
+unadjusted_results <- map(model_formulas, ~glm(.x, data = overlap_f2, family = "binomial"))
+
+# Get unadjusted ORs
+unadj_OR <- map_dfr(unadjusted_results, tidy, .id = "predictor") %>%
+  mutate(
+    odds_ratio = exp(estimate), 
+    conf_low = exp(estimate - 1.96 * std.error),
+    conf_high = exp(estimate + 1.96 * std.error)
+  ) %>%
+  filter(term != "(Intercept)")
+
+unadj_OR <- unadj_OR %>%  
+  mutate(predictor = factor(predictor, levels = unique(unadj_OR$predictor))) %>% 
+  select(predictor, term, odds_ratio, conf_low, conf_high, p.value) 
+
+# Trend p-values
+ind_vars_num <- paste0("as.numeric(", ind_vars, ")")
+model_formulas <- map(ind_vars_num, ~reformulate(.x, response = "fibro_inc")) %>% 
+  setNames(ind_vars)
+
+trend_p <- model_formulas %>% 
+  map(~ glm(.x, data = overlap_f2, family = "binomial")) %>% 
+  map_dbl(~ coef(summary(.x))[2, "Pr(>|z|)"])
+
+trend_p_df <- data.frame(trend.p = trend_p) %>% 
+  rownames_to_column("predictor") %>% 
+  filter(predictor != "jobstress") %>% 
+  mutate(trend.p = format.pval(trend.p, digits = 2))
+
+options(knitr.kable.NA = "")
+
+unadj_OR %>% 
+  left_join(trend_p_df, by = "predictor") %>% 
+  group_by(predictor) %>%
+  mutate(across(odds_ratio:conf_high, round, 2)) %>%
+  mutate(
+    p.value = round(p.value, 4),
+    trend.p = if_else(row_number() == 1, trend.p, NA_character_)
+    ) %>%
+  ungroup() %>% 
+  knitr::kable()
+
+```
+
+### Adjusted odds ratios
+
+* This time, we fit multivariable logistic models adjusting for:
+  * Age as continuous
+  * BMI as continuous
+  * Education as categorical
+  * Employment as binary (no/yes)
+  * Marital status as categorical
+
+* Adjusted odds ratios for each exposure variable are shown below
+  * Note that reference groups are not shown in the table
+    * For warm parenting, the reference is "Both"
+    * For other exposure variables, the reference is the first level shown in the descriptive table 
+    
+* There was a significant trend for warm/cold parenting, depression, hostility, authority
+
+```{r adjusted_odds_ratios, echo = FALSE, warning = FALSE, message = FALSE}
+
+# Logistic regression: Adjusted ORs ---------------------------------------
+
+# Adjusted ORs
+# Create models
+model_formulas <- map(ind_vars, ~reformulate(c(.x, covars), response = "fibro_inc")) %>% 
+  setNames(ind_vars)
+
+# Run models
+adjusted_results <- map(model_formulas, ~glm(.x, data = overlap_f2, family = "binomial"))
+
+# Get adjusted ORs
+adjusted_OR <- map_dfr(adjusted_results, tidy, .id = "predictor") %>%
+  mutate(
+    odds_ratio = exp(estimate), 
+    conf_low = exp(estimate - 1.96 * std.error),
+    conf_high = exp(estimate + 1.96 * std.error)
+  ) %>%
+  filter(term != "(Intercept)") %>% 
+  select(predictor, term, odds_ratio, conf_low, conf_high, p.value)  
+  
+# Trend p-values
+ind_vars_num <- paste0("as.numeric(", ind_vars, ")")
+model_formulas <- map(ind_vars_num, ~reformulate(c(.x, covars), response = "fibro_inc")) %>% 
+  setNames(ind_vars)
+
+trend_p <- model_formulas %>% 
+  map(~ glm(.x, data = overlap_f2, family = "binomial")) %>% 
+  map_dbl(~ coef(summary(.x))[2, "Pr(>|z|)"])
+
+trend_p_df <- data.frame(trend.p = trend_p) %>% 
+  rownames_to_column("predictor") %>% 
+  filter(predictor != "jobstress") %>% 
+  mutate(trend.p = format.pval(trend.p, digits = 2))
+
+adjusted_OR %>% 
+  filter(grepl(paste0(ind_vars, collapse = "|"), term)) %>% 
+  left_join(trend_p_df, by = "predictor") %>% 
+  group_by(predictor) %>%
+  mutate(across(odds_ratio:conf_high, round, 2)) %>%
+  mutate(
+    p.value = round(p.value, 4),
+    trend.p = if_else(row_number() == 1, trend.p, NA_character_)
+    ) %>%
+  ungroup() %>% 
+  knitr::kable()
+
+```
+
