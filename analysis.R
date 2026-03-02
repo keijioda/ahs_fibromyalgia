@@ -60,13 +60,29 @@ overlap_f <- overlap0 %>%
     parent_cold = case_when(
       (mcold == 1 & fcold == 0) | (mcold == 0 & fcold == 1) ~ 1,
       mcold == 1 & fcold == 1 ~ 2,
+      mcold == 2 & fcold == 2 ~ NA_integer_,
       TRUE ~ 0
     ),
     parent_cold = factor(parent_cold, labels = c("None", "One", "Both")),
     
+    cold_mother = case_when(
+      mcold == 0 ~ 0,
+      mcold == 1 ~ 1,
+      mcold == 2 ~ NA_integer_
+    ),
+    cold_mother = factor(cold_mother, labels = c("No", "Yes")),
+    
+    cold_father = case_when(
+      fcold == 0 ~ 0,
+      fcold == 1 ~ 1,
+      fcold == 2 ~ NA_integer_
+    ),
+    cold_father = factor(cold_father, labels = c("No", "Yes")),
+    
     parent_warm = case_when(
       (mwarm == 1 & fwarm == 0) | (mwarm == 0 & fwarm == 1) ~ 1,
       mwarm == 1 & fwarm == 1 ~ 2,
+      mwarm == 2 & fwarm == 2 ~ NA_integer_,
       TRUE ~ 0
     ),
     parent_warm = factor(parent_warm, labels = c("None", "One", "Both")),
@@ -124,7 +140,6 @@ overlap_f %>%
   filter(raised == 5) %>% 
   count(across(starts_with("e2q9r")), sort = TRUE)
 
-
 # Fibromyalgia cases ------------------------------------------------------
 
 # Fibromyalgia variables -- years and treated
@@ -177,6 +192,8 @@ table_vars <- c(
   "smoke2",
   "parent_warm",
   "parent_cold",
+  "cold_mother",
+  "cold_father",
   # "parent_situ",
   # "raised_by",
   "fam_struct",
@@ -201,7 +218,7 @@ overlap_f %>%
     by = "fm_stat",
     statistic = list(all_continuous() ~ "{mean} ({sd})"),
     digits = all_continuous() ~ 1,
-    type = list(employ2 ~ "categorical"),
+    type = list(employ2 ~ "categorical", cold_mother ~ "categorical", cold_father ~ "categorical"),
     missing = "always",
     missing_text = "(Missing)"
   ) %>%
@@ -236,6 +253,8 @@ overlap_f %>%
 ind_vars <- c(
   "parent_warm",
   "parent_cold",
+  "cold_mother",
+  "cold_father",
   # "parent_situ",
   # "raised_by",
   "fam_struct",

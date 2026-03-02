@@ -43,8 +43,8 @@ AHS Overlap Population Fibromyalgia Study
   - See also: Table 1 of the manuscript
 - Early life experiences (See [the questions in
   AHS-1](./images/AHS1_Q37.png))
-  - Warm parenting: `mwarm`, `fwarm`
-  - Cold parenting: `mcold`, `fcold`
+  - Warm parenting: `mwarm` and `fwarm` combined
+  - Cold parenting: `mcold` and `fcold` combined
   - ~~Parent situation~~: Removed or replaced with “family structure”
   - \[**Need to check**\] Family structure
     - Replace “Raised by” variable
@@ -143,10 +143,12 @@ AHS Overlap Population Fibromyalgia Study
 
 | predictor   | term                | odds_ratio | conf_low | conf_high | p.value | trend.p |
 |:------------|:--------------------|-----------:|---------:|----------:|--------:|:--------|
-| parent_warm | One                 |       1.76 |     1.21 |      2.56 |  0.0030 | 0.0051  |
-| parent_warm | None                |       1.69 |     1.01 |      2.83 |  0.0471 |         |
-| parent_cold | One                 |       1.39 |     0.95 |      2.04 |  0.0897 | 0.0144  |
-| parent_cold | Both                |       1.87 |     1.04 |      3.36 |  0.0367 |         |
+| parent_warm | One                 |       1.76 |     1.21 |      2.56 |  0.0030 | 0.0117  |
+| parent_warm | None                |       1.54 |     0.87 |      2.70 |  0.1350 |         |
+| parent_cold | One                 |       1.44 |     0.98 |      2.11 |  0.0658 | 0.0097  |
+| parent_cold | Both                |       1.93 |     1.07 |      3.47 |  0.0289 |         |
+| cold_mother | Yes                 |       1.46 |     0.94 |      2.27 |  0.0912 | 0.0912  |
+| cold_father | Yes                 |       1.54 |     1.06 |      2.23 |  0.0231 | 0.0231  |
 | fam_struct  | Two parents\*       |       2.03 |     1.17 |      3.52 |  0.0116 | 0.1382  |
 | fam_struct  | Single-birthparent  |       1.00 |     0.51 |      1.94 |  0.9993 |         |
 | fam_struct  | Other               |       1.99 |     0.78 |      5.08 |  0.1493 |         |
@@ -181,10 +183,12 @@ AHS Overlap Population Fibromyalgia Study
 
 | predictor   | term                | odds_ratio | conf_low | conf_high | p.value | trend.p |
 |:------------|:--------------------|-----------:|---------:|----------:|--------:|:--------|
-| parent_warm | One                 |       1.89 |     1.26 |      2.83 |  0.0020 | 0.0145  |
-| parent_warm | None                |       1.53 |     0.83 |      2.81 |  0.1696 |         |
-| parent_cold | One                 |       1.55 |     1.03 |      2.34 |  0.0364 | 0.0065  |
-| parent_cold | Both                |       2.05 |     1.08 |      3.90 |  0.0285 |         |
+| parent_warm | One                 |       1.89 |     1.26 |      2.83 |  0.0020 | 0.0102  |
+| parent_warm | None                |       1.60 |     0.87 |      2.94 |  0.1297 |         |
+| parent_cold | One                 |       1.54 |     1.02 |      2.32 |  0.0394 | 0.0071  |
+| parent_cold | Both                |       2.04 |     1.07 |      3.87 |  0.0300 |         |
+| cold_mother | Yes                 |       1.61 |     1.01 |      2.57 |  0.0466 | 0.0466  |
+| cold_father | Yes                 |       1.54 |     1.04 |      2.30 |  0.0325 | 0.0325  |
 | fam_struct  | Two parents\*       |       2.07 |     1.14 |      3.76 |  0.0173 | 0.1706  |
 | fam_struct  | Single-birthparent  |       1.24 |     0.63 |      2.44 |  0.5355 |         |
 | fam_struct  | Other               |       1.40 |     0.42 |      4.60 |  0.5828 |         |
