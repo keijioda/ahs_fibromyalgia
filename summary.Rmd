@@ -7,17 +7,18 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 
 # Required packages
-pacs <- c("tidyverse", "janitor", "broom", "haven", "tableone", "gtsummary")
+pacs <- c("tidyverse", "readxl", "janitor", "broom", "mice", "tableone", "gtsummary")
 sapply(pacs, require, character.only = TRUE)
 
 # Read SAS data
 # n.obs = 5067
-overlap0 <- read_sas("./data/choi_master.sas7bdat") %>% 
-  clean_names()
+overlap0 <- read_excel("./data/choi_principle.xls", na = ".Z") %>% 
+  clean_names() %>% 
+  rename(analysisid = ahs1_qid_to_analysis_id)
 
 # Overlap population, female only -----------------------------------------
 
-# n = 3136
+# n = 3136 women
 overlap_f <- overlap0 %>% 
   filter(sex == 0) %>% 
   
@@ -28,7 +29,7 @@ overlap_f <- overlap0 %>%
       TRUE ~ 0
       ),
     fm_stat = factor(fibro_inc, labels = c("Non-case", "Case"))
-  ) %>% 
+  ) %>%
 
   # Demographics and lifestyles
   mutate(
@@ -82,14 +83,8 @@ overlap_f <- overlap0 %>%
     ),
     parent_warm = factor(parent_warm, labels = c("None", "One", "Both")),
     
-    # Parent situation -- Need to check
-    # parent_situ = case_when(
-    #   raised %in% 1:2 ~ 0,
-    #   e2q9r1 == 1 | e2q9r2 == 1 | e2q9r3 == 1 | e2q9r4 == 1 ~ 1
-    # ),
-    # parent_situ = factor(parent_situ, labels = c("Married in home", "One died/sep/div")),
-    
-    # Raised by -- Need to check
+    # Family structure: Based on AHS-2 variable "RAISED"
+    # Replace "Raised by" variable that appears in the manuscript
     fam_struct = case_when(
       raised == 1 ~ 0,
       raised == 2 ~ 1,
@@ -99,10 +94,10 @@ overlap_f <- overlap0 %>%
     fam_struct = factor(fam_struct, labels = c("Two birthparents", "Two parents*", "Single-birthparent", "Other")),
     
     # Personality traits
-    # Note reversed signs -- Need to check
+    # Note reversed signs
     urgency     = (11 - rushed) + competv + tasks + (11 - fasteat),
-    urgency4    = cut(urgency, breaks = c(4, 15, 26, 30, Inf), right = FALSE),
-    urgency4    = factor(urgency4, labels = c("4-14", "15-25", "26-29", '30+')),
+    urgency4    = cut(urgency, breaks = c(4, 21, 25, 30, Inf), right = FALSE),
+    urgency4    = factor(urgency4, labels = c("4-20", "21-24", "25-29", '30-40')),
     
     depression  = (2 - overcome) + (2 - happy) + (family - 1),
     depression4 = factor(depression),
@@ -121,7 +116,6 @@ overlap_f <- overlap0 %>%
       jobsat %in% 1:2 | jobfrus %in% 3:4 ~ 0,
       jobsat %in% 3:4 & jobfrus %in% 1:2 ~ 1
     ),
-    # jobstress = ifelse(is.na(jobsat) | is.na(jobfrus), NA_integer_, jobstress),
     jobstress = factor(jobstress, labels = c("Low frus or hi satis", "Hi frus & low satis"))
   )
 
@@ -134,15 +128,22 @@ overlap_f <- overlap0 %>%
 
 * Contains 5067 subjects. Among them, there were n = 3136 women.
 
+## Exclusion criteria
+
+* The dataset appears to have already excluded those who were diagnosed for fibromyalgia 20 or more years ago
+  * (See the Outcome section below as well)
+  * (The manuscript reports the original sample size of n = 3156, and then 20 subjects were excluded for prevalent cases)
+  
 ## Outcome
 
 * Self-reported diagnosis of fibromyalgia from **AHS-2 baseline** questionnaire ([Page A4, under the section of musculoskeletal system](https://wiki.ahs2.org/_media/baseline:ahs_baseline_v3_-_page_a4.jpg))
   * Years since first diagnosis: Less than 5 years ago, 5-9 yrs ago, 10-14 yrs ago, 20+ yrs ago
   * Have you been treated for this in the last 12 months?: No or Yes
   * See the crosstab below
-    * 127 females reported their FM diagnosis. None of these were diagnosed 20+ years ago
+    * 127 females reported their FM diagnosis. ~~None of these were diagnosed 20+ years ago~~
+      * The dataset appears to have excluded those who were diagnosed for FM 20 or more years ago (See the manuscript)
     * 64 females were treated in the last 12 month. Among them, 9 females did not indicate their diagnosis year
-  * [**Need to check**] If diagnosed < 20 years ago or treated within the last 12 months, they were considered as incident cases
+  * If diagnosed < 20 years ago or treated within the last 12 months, they were considered as incident cases
     * According to this classification rule, there are 136 incident cases (4.3%) out of 3136 women
 
 ```{r fibro_crosstab, echo = FALSE}
@@ -168,7 +169,7 @@ overlap_f %>%
   * Warm parenting: `mwarm` and `fwarm` combined
   * Cold parenting: `mcold` and `fcold` combined
   * ~~Parent situation~~: Removed or replaced with "family structure" 
-  * [**Need to check**] Family structure
+  * Family structure
     * Replace "Raised by" variable
     * Based on AHS-2 BQ, Page E2, Q8, asking "Up through age 16 years, were you mostly raised with" (See [the questions in AHS-2](./images/AHS2_BQ_E2Q8.png))
     * If answered "Your two birth parents", then categorized into "Two birthparents"
@@ -200,7 +201,10 @@ overlap_f %>%
     * 10-point likert scale
     * Scales were reversed for `rushed` and `fasteat` (see AHS-1 questionnaire) before summing up
     * Possible range: from 4 to 40
-    * [**Need to check**] The distribution of this score does **NOT** match with those shown in Table 3 of the manuscript
+      * ~~The distribution of this score does **NOT** match with those shown in Table 3 of the manuscript~~
+    * Cut-off values were changed as follows: 4-20, 21-24, 25-29, 30-40
+      * With these groupings, the numbers match up with those in Table 3 of the manuscript
+      * Apparently, the labels were incorrect in the manuscript
 
 * Job stress
   * Based on AHS-1 Q21 and Q22 (See [the questions in AHS-1](./images/AHS1_Q21.png))
@@ -208,6 +212,15 @@ overlap_f %>%
     * `jobfrus`: How often are you irritated or frustrated by your job
     * If answered ("Not too satisfied" OR "Not at all satisfied") AND ("Always" OR "Often"), then categorized to "High frustration and low satisfaction"
       * Otherwise categorized to "Low frustration or high satisfaction"
+
+## Multiple imputation
+
+* Data have some missing values. For example: 
+  * BMI is missing in about 9% of n = 3,136
+  * Family structure during early years of life has missing values for ~9.5% of the subjects
+
+* Multiple imputation was performed using chained equations ([van Buuren & Groothuis-Oudshoorn, 2011](https://cran.r-project.org/web/packages/mice/citation.html)) in the `mice` package, assuming that data are missing at random.
+  * Ten imputed datasets were produced from an imputation model containing the outcome, exposure variables, and covariates (demographics and BMI) that were used in logistic models (described later)
 
 ## Descriptive table
 
@@ -221,14 +234,25 @@ overlap_f %>%
   * Marital status: Based on the AHS-1 variable `MaritalCQ`, categorized into 3 levels as shown in the table
   * Smoking status: Based on AHS-1 Q27, categorized into 2 levels: Never or Ever
 
-* [**Need to check**] Note the number of missing values as well. **How should we handle the missing values?** Any inclusion/exclusion criteria?
+* (The descriptive table below was produced using the first imputed dataset)
+
+* ~~Note the number of missing values as well. How should we handle the missing values?~~
+  * ~~**[TO DO]** We will perform multiple imputation assuming missing at random (MAR)~~
+  * ~~**[TO DO]** Descriptive table below will be replaced with one created from the imputed dataset~~ 
+
 
 ```{r descriptive_table, echo = FALSE, out.width = "50%"}
 
-# Table 1 -----------------------------------------------------------------
+# Load imputed data -------------------------------------------------------
+
+# Load imputed data (post-processed) from RDS file
+imputed_processed <- readRDS("imputed_processed.rds")
+
+
+ # Table 1 -----------------------------------------------------------------
 
 # Variables to be included 
-# It appears that all vars come from AHS-1
+# all vars come from AHS-1, except for family structure
 table_vars <- c(
   "agecat",
   "agein",
@@ -242,8 +266,6 @@ table_vars <- c(
   "parent_cold",
   "cold_mother",
   "cold_father",
-  # "parent_situ",
-  # "raised_by",
   "fam_struct",
   "depression4",
   "hostility3",
@@ -252,16 +274,20 @@ table_vars <- c(
   "jobstress"
 )
 
-overlap_f %>%
+# Use the first imputation
+imp1 <- complete(imputed_processed, action = 1)
+
+imp1 %>%
   select(all_of(table_vars), fm_stat) %>% 
   tbl_summary(
     by = "fm_stat",
     statistic = list(all_continuous() ~ "{mean} ({sd})"),
     digits = all_continuous() ~ 1,
     type = list(employ2 ~ "categorical", cold_mother ~ "categorical", cold_father ~ "categorical"),
-    missing = "always",
-    missing_text = "(Missing)"
+    # missing = "always",
+    # missing_text = "(Missing)"
   ) %>%
+  add_overall() %>% 
   add_p(
     test = list(all_continuous() ~ "t.test"),
     pvalue_fun = label_style_pvalue(digits = 3),
@@ -273,11 +299,12 @@ overlap_f %>%
 ## Distribution for age and BMI
 
 * See below for distributions of age and BMI:
+  * The distribution of BMI (`ahs1_bmi`) is right-skewed as expected, but there are no extreme/unusual outliers.
 
 
 ```{r check_distribution, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 3}
 
-overlap_f %>% 
+imp1 %>% 
   select(agein, ahs1_bmi) %>% 
   pivot_longer(1:2, names_to = "Variable", values_to = "Value") %>% 
   ggplot(aes(x = Value)) +
@@ -287,9 +314,51 @@ overlap_f %>%
 
 ```
 
+### Correlations among exposure variables
+
+* A Spearman correlation matrix among exposure variables is shown below:
+  * A high correlation was observed between `parent_warm` and `parent_cold` (cor = -0.79), which is expected
+  * `cold_mother` and `cold_father` was only weakly correlated with each other (corr = 0.19)
+
+* Except for warm and cold parents, the correlations were not very strong. Multicollinearity should not pose a concern unless warm-parents and cold-parents are entered into the model simultaneously
+
+
+```{r correlation_matrix, echo = FALSE, warning = FALSE, message = FALSE}
+
+# Exposure of interest ----------------------------------------------------
+
+# Exposure variables of interest
+ind_vars <- c(
+  "parent_warm",
+  "parent_cold",
+  "cold_mother",
+  "cold_father",
+  "fam_struct",
+  "depression4",
+  "hostility3",
+  "authority4",
+  "urgency4",
+  "jobstress"
+)
+
+# Spearman correlation matrix
+cm <- imp1 %>%
+  select(all_of(ind_vars)) %>%
+  mutate_all(as.numeric) %>%
+  cor(method = "spearman", use = "pairwise")
+
+# Display coorelation matrix: Lower triangle only
+options(knitr.kable.NA = "")
+cm[upper.tri(cm, diag = TRUE)] <- NA
+round(cm, 2) %>% knitr::kable()
+
+```
+
 ## Logistic models
 
 * For each exposure variable of interest, first we fit logistic models using incident fibromyalgia as the outcome to obtain unadjusted odds ratios associated with the exposure variable
+
+* Logistic models were fitted for each of 10 imputed datasets, and the results were pooled using Rubin's rules
 
 
 ### Unadjusted odds ratios
@@ -303,16 +372,14 @@ overlap_f %>%
 
 ```{r unadjusted_odds_ratios, echo = FALSE, warning = FALSE, message = FALSE}
 
-# Exposure of interest ----------------------------------------------------
+# Logistic regression: Unadjusted ORs -------------------------------------
 
 # Exposure variables of interest
 ind_vars <- c(
-  "parent_warm",
+  "parent_warm_rev",
   "parent_cold",
   "cold_mother",
   "cold_father",
-  # "parent_situ",
-  # "raised_by",
   "fam_struct",
   "depression4",
   "hostility3",
@@ -330,54 +397,45 @@ covars <- c(
   "marital3"
 )
 
-# Logistic regression: Unadjusted ORs -------------------------------------
+# Function to run logistic reg on mids object
+mice_logistic <- function(formula){
+  model_fits <- with(imputed_processed, glm(as.formula(formula), family = "binomial"))
+  pooled_results <- pool(model_fits)
+  out <- summary(pooled_results, conf.int = TRUE, exponentiate = TRUE) %>% 
+    slice(-1) %>% 
+    select(term, estimate, conf.low, conf.high, p.value)
+}
 
-# Reverse order for parent_warm
-overlap_f2 <- overlap_f %>% 
-  mutate(parent_warm = fct_rev(parent_warm))
-
-# Unadjusted ORs
 # Create models
-model_formulas <- map(ind_vars, ~reformulate(.x, response = "fibro_inc")) %>% 
-  setNames(ind_vars)
+model_formulas <- paste0("fibro_inc ~ ", ind_vars)
 
 # Run models
-unadjusted_results <- map(model_formulas, ~glm(.x, data = overlap_f2, family = "binomial"))
-
-# Get unadjusted ORs
-unadj_OR <- map_dfr(unadjusted_results, tidy, .id = "predictor") %>%
+unadjusted_results <- map(model_formulas, ~ mice_logistic(.x)) %>% 
+  bind_rows() %>%
+  remove_rownames() %>% 
   mutate(
-    odds_ratio = exp(estimate), 
-    conf_low = exp(estimate - 1.96 * std.error),
-    conf_high = exp(estimate + 1.96 * std.error)
-  ) %>%
-  filter(term != "(Intercept)")
-
-unadj_OR <- unadj_OR %>%  
-  mutate(predictor = factor(predictor, levels = unique(unadj_OR$predictor))) %>% 
-  select(predictor, term, odds_ratio, conf_low, conf_high, p.value) 
+    predictor = str_extract(as.character(term), paste0(ind_vars, collapse = "|")),
+    term = gsub(paste0(ind_vars, collapse = "|"), "", term)
+    ) %>% 
+  select(predictor, everything())
 
 # Trend p-values
-ind_vars_num <- paste0("as.numeric(", ind_vars, ")")
-model_formulas <- map(ind_vars_num, ~reformulate(.x, response = "fibro_inc")) %>% 
-  setNames(ind_vars)
-
-trend_p <- model_formulas %>% 
-  map(~ glm(.x, data = overlap_f2, family = "binomial")) %>% 
-  map_dbl(~ coef(summary(.x))[2, "Pr(>|z|)"])
-
-trend_p_df <- data.frame(trend.p = trend_p) %>% 
-  rownames_to_column("predictor") %>% 
-  filter(predictor != "jobstress") %>% 
-  mutate(trend.p = format.pval(trend.p, digits = 2))
+model_formulas <- paste0("fibro_inc ~ as.numeric(", ind_vars, ")")
+unadjusted_trendp <- map(model_formulas, ~ mice_logistic(.x)) %>% 
+  bind_rows() %>%
+  remove_rownames() %>% 
+  mutate(term = gsub("as.numeric\\(|\\)", "", term)) %>% 
+  rename(trend.p = p.value) %>% 
+  filter(!(term %in% c("jobstress", "cold_mother", "cold_father"))) %>% 
+  mutate(trend.p = format.pval(trend.p, digits = 2)) %>% 
+  select(term, trend.p) 
 
 options(knitr.kable.NA = "")
-
-unadj_OR %>% 
-  left_join(trend_p_df, by = "predictor") %>% 
+unadjusted_results %>% 
+  left_join(unadjusted_trendp, by = c("predictor" = "term")) %>% 
+  rename(odds.ratio = estimate) %>% 
+  mutate(across(odds.ratio:conf.high, round, 2)) %>%
   group_by(predictor) %>%
-  mutate(term = gsub(paste0(ind_vars, collapse = "|"), "", term)) %>% 
-  mutate(across(odds_ratio:conf_high, round, 2)) %>%
   mutate(
     p.value = round(p.value, 4),
     trend.p = if_else(row_number() == 1, trend.p, NA_character_)
@@ -387,14 +445,19 @@ unadj_OR %>%
 
 ```
 
-### Adjusted odds ratios
+### Odds ratios, adjusted for demographics and BMI
 
 * This time, we fit multivariable logistic models adjusting for:
   * Age as continuous
   * BMI as continuous
+    * ~~**[TO DO]** Check for non-linearity, possibly using a GAM model~~
+    * Linearity assumption was checked for BMI using a generalized additive model that includes a non-linear term for BMI, adjusting for demographic variables
+    * The non-linear term of BMI was not significant (p = 0.116) and its effective df was close to 1 (EDF = 1.114), suggesting that the association between incident fibromyalgia and BMI is linear on logit scale when adjusting for demographic variables
   * Education as categorical
-  * Employment as binary (no/yes)
+  * Employment as binary (employed/unemployed)
   * Marital status as categorical
+
+* Again, the logistic models were fitted for each of 10 imputed datasets, and the results were pooled using Rubin's rules
 
 * Adjusted odds ratios for each exposure variable are shown below
   * Note that reference groups are not shown in the table
@@ -407,44 +470,40 @@ unadj_OR %>%
 
 # Logistic regression: Adjusted ORs ---------------------------------------
 
-# Adjusted ORs
 # Create models
-model_formulas <- map(ind_vars, ~reformulate(c(.x, covars), response = "fibro_inc")) %>% 
-  setNames(ind_vars)
+model_formulas <- paste0("fibro_inc ~ ", ind_vars, " + agein + ahs1_bmi + educat3 + employ2 + marital3")
 
 # Run models
-adjusted_results <- map(model_formulas, ~glm(.x, data = overlap_f2, family = "binomial"))
-
-# Get adjusted ORs
-adjusted_OR <- map_dfr(adjusted_results, tidy, .id = "predictor") %>%
+adjusted_results <- map(model_formulas, ~ mice_logistic(.x)) %>% 
+  bind_rows() %>%
+  remove_rownames() %>% 
   mutate(
-    odds_ratio = exp(estimate), 
-    conf_low = exp(estimate - 1.96 * std.error),
-    conf_high = exp(estimate + 1.96 * std.error)
-  ) %>%
-  filter(term != "(Intercept)") %>% 
-  select(predictor, term, odds_ratio, conf_low, conf_high, p.value)  
-  
+    predictor = str_extract(as.character(term), paste0(ind_vars, collapse = "|")),
+    term = gsub(paste0(ind_vars, collapse = "|"), "", term)
+    ) %>% 
+  filter(!is.na(predictor)) %>% 
+  select(predictor, everything())
+
 # Trend p-values
-ind_vars_num <- paste0("as.numeric(", ind_vars, ")")
-model_formulas <- map(ind_vars_num, ~reformulate(c(.x, covars), response = "fibro_inc")) %>% 
-  setNames(ind_vars)
+model_formulas <- paste0("fibro_inc ~ as.numeric(", ind_vars, ")" ,  " + agein + ahs1_bmi + educat3 + employ2 + marital3")
+adjusted_trendp <- map(model_formulas, ~ mice_logistic(.x)) %>% 
+  bind_rows() %>%
+  remove_rownames() %>% 
+  mutate(
+    predictor = str_extract(as.character(term), paste0(ind_vars, collapse = "|")),
+    term = gsub("as.numeric\\(|\\)", "", term)
+    ) %>% 
+  rename(trend.p = p.value) %>% 
+  filter(predictor %in% ind_vars) %>% 
+  filter(!(term %in% c("jobstress", "cold_mother", "cold_father"))) %>% 
+  mutate(trend.p = format.pval(trend.p, digits = 2)) %>% 
+  select(predictor, trend.p) 
 
-trend_p <- model_formulas %>% 
-  map(~ glm(.x, data = overlap_f2, family = "binomial")) %>% 
-  map_dbl(~ coef(summary(.x))[2, "Pr(>|z|)"])
-
-trend_p_df <- data.frame(trend.p = trend_p) %>% 
-  rownames_to_column("predictor") %>% 
-  filter(predictor != "jobstress") %>% 
-  mutate(trend.p = format.pval(trend.p, digits = 2))
-
-adjusted_OR %>% 
-  filter(grepl(paste0(ind_vars, collapse = "|"), term)) %>% 
-  mutate(term = gsub(paste0(ind_vars, collapse = "|"), "", term)) %>% 
-  left_join(trend_p_df, by = "predictor") %>% 
+adjusted_results %>% 
+  left_join(adjusted_trendp, by = "predictor") %>% 
+  rename(odds.ratio = estimate) %>% 
+  mutate(across(odds.ratio:conf.high, round, 2)) %>%
   group_by(predictor) %>%
-  mutate(across(odds_ratio:conf_high, round, 2)) %>%
   mutate(
     p.value = round(p.value, 4),
     trend.p = if_else(row_number() == 1, trend.p, NA_character_)
@@ -454,3 +513,7 @@ adjusted_OR %>%
 
 ```
 
+### Multiple exposure models
+
+* **[TO DO]** Consider logistic models including multiple exposure variables simultaneously
+  

@@ -7,6 +7,14 @@ AHS Overlap Population Fibromyalgia Study
   - See the manuscript how record linkage was done
 - Contains 5067 subjects. Among them, there were n = 3136 women.
 
+## Exclusion criteria
+
+- The dataset appears to have already excluded those who were diagnosed
+  for fibromyalgia 20 or more years ago
+  - (See the Outcome section below as well)
+  - (The manuscript reports the original sample size of n = 3156, and
+    then 20 subjects were excluded for prevalent cases)
+
 ## Outcome
 
 - Self-reported diagnosis of fibromyalgia from **AHS-2 baseline**
@@ -16,12 +24,14 @@ AHS Overlap Population Fibromyalgia Study
     10-14 yrs ago, 20+ yrs ago
   - Have you been treated for this in the last 12 months?: No or Yes
   - See the crosstab below
-    - 127 females reported their FM diagnosis. None of these were
-      diagnosed 20+ years ago
+    - 127 females reported their FM diagnosis. ~~None of these were
+      diagnosed 20+ years ago~~
+      - The dataset appears to have excluded those who were diagnosed
+        for FM 20 or more years ago (See the manuscript)
     - 64 females were treated in the last 12 month. Among them, 9
       females did not indicate their diagnosis year
-  - \[**Need to check**\] If diagnosed \< 20 years ago or treated within
-    the last 12 months, they were considered as incident cases
+  - If diagnosed \< 20 years ago or treated within the last 12 months,
+    they were considered as incident cases
     - According to this classification rule, there are 136 incident
       cases (4.3%) out of 3136 women
 
@@ -46,7 +56,7 @@ AHS Overlap Population Fibromyalgia Study
   - Warm parenting: `mwarm` and `fwarm` combined
   - Cold parenting: `mcold` and `fcold` combined
   - ~~Parent situation~~: Removed or replaced with “family structure”
-  - \[**Need to check**\] Family structure
+  - Family structure
     - Replace “Raised by” variable
     - Based on AHS-2 BQ, Page E2, Q8, asking “Up through age 16 years,
       were you mostly raised with” (See [the questions in
@@ -82,8 +92,12 @@ AHS Overlap Population Fibromyalgia Study
     - Scales were reversed for `rushed` and `fasteat` (see AHS-1
       questionnaire) before summing up
     - Possible range: from 4 to 40
-    - \[**Need to check**\] The distribution of this score does **NOT**
-      match with those shown in Table 3 of the manuscript
+      - ~~The distribution of this score does **NOT** match with those
+        shown in Table 3 of the manuscript~~
+    - Cut-off values were changed as follows: 4-20, 21-24, 25-29, 30-40
+      - With these groupings, the numbers match up with those in Table 3
+        of the manuscript
+      - Apparently, the labels were incorrect in the manuscript
 - Job stress
   - Based on AHS-1 Q21 and Q22 (See [the questions in
     AHS-1](./images/AHS1_Q21.png))
@@ -93,6 +107,21 @@ AHS Overlap Population Fibromyalgia Study
       (“Always” OR “Often”), then categorized to “High frustration and
       low satisfaction”
       - Otherwise categorized to “Low frustration or high satisfaction”
+
+## Multiple imputation
+
+- Data have some missing values. For example:
+  - BMI is missing in about 9% of n = 3,136
+  - Family structure during early years of life has missing values for
+    ~9.5% of the subjects
+- Multiple imputation was performed using chained equations ([van Buuren
+  & Groothuis-Oudshoorn,
+  2011](https://cran.r-project.org/web/packages/mice/citation.html)) in
+  the `mice` package, assuming that data are missing at random.
+  - Ten imputed datasets were produced from an imputation model
+    containing the outcome, exposure variables, and covariates
+    (demographics and BMI) that were used in logistic models (described
+    later)
 
 ## Descriptive table
 
@@ -113,23 +142,60 @@ AHS Overlap Population Fibromyalgia Study
   - Smoking status: Based on AHS-1 Q27, categorized into 2 levels: Never
     or Ever
 
-- \[**Need to check**\] Note the number of missing values as well. **How
-  should we handle the missing values?** Any inclusion/exclusion
-  criteria?
+- (The descriptive table below was produced using the first imputed
+  dataset)
+
+- ~~Note the number of missing values as well. How should we handle the
+  missing values?~~
+
+  - ~~**\[TO DO\]** We will perform multiple imputation assuming missing
+    at random (MAR)~~
+  - ~~**\[TO DO\]** Descriptive table below will be replaced with one
+    created from the imputed dataset~~
 
 <img src="summary_files/figure-gfm/descriptive_table-1.png" alt="" width="50%" />
 
 ## Distribution for age and BMI
 
 - See below for distributions of age and BMI:
+  - The distribution of BMI (`ahs1_bmi`) is right-skewed as expected,
+    but there are no extreme/unusual outliers.
 
 ![](summary_files/figure-gfm/check_distribution-1.png)<!-- -->
+
+### Correlations among exposure variables
+
+- A Spearman correlation matrix among exposure variables is shown below:
+  - A high correlation was observed between `parent_warm` and
+    `parent_cold` (cor = -0.79), which is expected
+  - `cold_mother` and `cold_father` was only weakly correlated with each
+    other (corr = 0.19)
+- Except for warm and cold parents, the correlations were not very
+  strong. Multicollinearity should not pose a concern unless
+  warm-parents and cold-parents are entered into the model
+  simultaneously
+
+|  | parent_warm | parent_cold | cold_mother | cold_father | fam_struct | depression4 | hostility3 | authority4 | urgency4 | jobstress |
+|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| parent_warm |  |  |  |  |  |  |  |  |  |  |
+| parent_cold | -0.79 |  |  |  |  |  |  |  |  |  |
+| cold_mother | -0.56 | 0.64 |  |  |  |  |  |  |  |  |
+| cold_father | -0.67 | 0.83 | 0.19 |  |  |  |  |  |  |  |
+| fam_struct | -0.27 | 0.09 | 0.12 | 0.03 |  |  |  |  |  |  |
+| depression4 | -0.11 | 0.12 | 0.10 | 0.08 | 0.01 |  |  |  |  |  |
+| hostility3 | -0.06 | 0.08 | 0.07 | 0.05 | 0.00 | 0.12 |  |  |  |  |
+| authority4 | -0.01 | 0.00 | 0.02 | -0.01 | -0.01 | 0.20 | -0.04 |  |  |  |
+| urgency4 | 0.01 | 0.01 | 0.02 | 0.00 | -0.02 | 0.06 | 0.12 | -0.01 |  |  |
+| jobstress | -0.09 | 0.06 | 0.08 | 0.05 | 0.03 | 0.16 | 0.07 | 0.03 | 0.07 |  |
 
 ## Logistic models
 
 - For each exposure variable of interest, first we fit logistic models
   using incident fibromyalgia as the outcome to obtain unadjusted odds
   ratios associated with the exposure variable
+
+- Logistic models were fitted for each of 10 imputed datasets, and the
+  results were pooled using Rubin’s rules
 
 ### Unadjusted odds ratios
 
@@ -141,66 +207,87 @@ AHS Overlap Population Fibromyalgia Study
 - There was a significant trend for warm/cold parenting, depression,
   hostility, authority
 
-| predictor   | term                | odds_ratio | conf_low | conf_high | p.value | trend.p |
-|:------------|:--------------------|-----------:|---------:|----------:|--------:|:--------|
-| parent_warm | One                 |       1.76 |     1.21 |      2.56 |  0.0030 | 0.0117  |
-| parent_warm | None                |       1.54 |     0.87 |      2.70 |  0.1350 |         |
-| parent_cold | One                 |       1.44 |     0.98 |      2.11 |  0.0658 | 0.0097  |
-| parent_cold | Both                |       1.93 |     1.07 |      3.47 |  0.0289 |         |
-| cold_mother | Yes                 |       1.46 |     0.94 |      2.27 |  0.0912 | 0.0912  |
-| cold_father | Yes                 |       1.54 |     1.06 |      2.23 |  0.0231 | 0.0231  |
-| fam_struct  | Two parents\*       |       2.03 |     1.17 |      3.52 |  0.0116 | 0.1382  |
-| fam_struct  | Single-birthparent  |       1.00 |     0.51 |      1.94 |  0.9993 |         |
-| fam_struct  | Other               |       1.99 |     0.78 |      5.08 |  0.1493 |         |
-| depression4 | 1                   |       1.19 |     0.75 |      1.89 |  0.4491 | 4.1e-05 |
-| depression4 | 2                   |       1.97 |     1.23 |      3.17 |  0.0048 |         |
-| depression4 | 3                   |       2.94 |     1.67 |      5.15 |  0.0002 |         |
-| hostility3  | 1                   |       1.50 |     1.00 |      2.24 |  0.0497 | 0.0030  |
-| hostility3  | 2                   |       2.06 |     1.26 |      3.36 |  0.0040 |         |
-| authority4  | 1                   |       1.70 |     0.99 |      2.93 |  0.0541 | 0.0248  |
-| authority4  | 2                   |       1.99 |     1.11 |      3.56 |  0.0203 |         |
-| authority4  | 3                   |       2.06 |     0.90 |      4.70 |  0.0867 |         |
-| urgency4    | 15-25               |       1.73 |     0.62 |      4.80 |  0.2959 | 0.4409  |
-| urgency4    | 26-29               |       1.89 |     0.66 |      5.45 |  0.2354 |         |
-| urgency4    | 30+                 |       1.82 |     0.63 |      5.25 |  0.2661 |         |
-| jobstress   | Hi frus & low satis |       2.43 |     1.09 |      5.41 |  0.0292 |         |
+| predictor | term | odds.ratio | conf.low | conf.high | p.value | trend.p |
+|:---|:---|---:|---:|---:|---:|:---|
+| parent_warm_rev | One | 1.76 | 1.21 | 2.56 | 0.0030 | 0.0051 |
+| parent_warm_rev | None | 1.69 | 1.01 | 2.83 | 0.0471 |  |
+| parent_cold | One | 1.39 | 0.95 | 2.04 | 0.0898 | 0.0145 |
+| parent_cold | Both | 1.87 | 1.04 | 3.36 | 0.0368 |  |
+| cold_mother | Yes | 1.46 | 0.94 | 2.26 | 0.0896 |  |
+| cold_father | Yes | 1.51 | 1.04 | 2.20 | 0.0307 |  |
+| fam_struct | Two parents\* | 1.94 | 1.11 | 3.39 | 0.0205 | 0.2028 |
+| fam_struct | Single-birthparent | 0.97 | 0.51 | 1.88 | 0.9397 |  |
+| fam_struct | Other | 1.79 | 0.70 | 4.55 | 0.2208 |  |
+| depression4 | 1 | 1.17 | 0.73 | 1.86 | 0.5109 | 2e-05 |
+| depression4 | 2 | 1.97 | 1.23 | 3.16 | 0.0048 |  |
+| depression4 | 3 | 3.13 | 1.81 | 5.43 | 0.0000 |  |
+| hostility3 | 1 | 1.48 | 1.00 | 2.21 | 0.0520 | 0.0031 |
+| hostility3 | 2 | 2.06 | 1.26 | 3.38 | 0.0041 |  |
+| authority4 | 1 | 1.68 | 0.96 | 2.92 | 0.0677 | 0.0303 |
+| authority4 | 2 | 1.95 | 1.08 | 3.52 | 0.0272 |  |
+| authority4 | 3 | 1.99 | 0.87 | 4.57 | 0.1038 |  |
+| urgency4 | 21-24 | 1.05 | 0.62 | 1.78 | 0.8457 | 0.2388 |
+| urgency4 | 25-29 | 1.39 | 0.86 | 2.27 | 0.1802 |  |
+| urgency4 | 30-40 | 1.24 | 0.74 | 2.09 | 0.4110 |  |
+| jobstress | Hi frus & low satis | 2.53 | 1.15 | 5.58 | 0.0215 |  |
 
-### Adjusted odds ratios
+### Odds ratios, adjusted for demographics and BMI
 
 - This time, we fit multivariable logistic models adjusting for:
+
   - Age as continuous
   - BMI as continuous
+    - ~~**\[TO DO\]** Check for non-linearity, possibly using a GAM
+      model~~
+    - Linearity assumption was checked for BMI using a generalized
+      additive model that includes a non-linear term for BMI, adjusting
+      for demographic variables
+    - The non-linear term of BMI was not significant (p = 0.116) and its
+      effective df was close to 1 (EDF = 1.114), suggesting that the
+      association between incident fibromyalgia and BMI is linear on
+      logit scale when adjusting for demographic variables
   - Education as categorical
-  - Employment as binary (no/yes)
+  - Employment as binary (employed/unemployed)
   - Marital status as categorical
+
+- Again, the logistic models were fitted for each of 10 imputed
+  datasets, and the results were pooled using Rubin’s rules
+
 - Adjusted odds ratios for each exposure variable are shown below
+
   - Note that reference groups are not shown in the table
     - For warm parenting, the reference is “Both”
     - For other exposure variables, the reference is the first level
       shown in the descriptive table
+
 - There was a significant trend for warm/cold parenting, depression,
   hostility, authority
 
-| predictor   | term                | odds_ratio | conf_low | conf_high | p.value | trend.p |
-|:------------|:--------------------|-----------:|---------:|----------:|--------:|:--------|
-| parent_warm | One                 |       1.89 |     1.26 |      2.83 |  0.0020 | 0.0102  |
-| parent_warm | None                |       1.60 |     0.87 |      2.94 |  0.1297 |         |
-| parent_cold | One                 |       1.54 |     1.02 |      2.32 |  0.0394 | 0.0071  |
-| parent_cold | Both                |       2.04 |     1.07 |      3.87 |  0.0300 |         |
-| cold_mother | Yes                 |       1.61 |     1.01 |      2.57 |  0.0466 | 0.0466  |
-| cold_father | Yes                 |       1.54 |     1.04 |      2.30 |  0.0325 | 0.0325  |
-| fam_struct  | Two parents\*       |       2.07 |     1.14 |      3.76 |  0.0173 | 0.1706  |
-| fam_struct  | Single-birthparent  |       1.24 |     0.63 |      2.44 |  0.5355 |         |
-| fam_struct  | Other               |       1.40 |     0.42 |      4.60 |  0.5828 |         |
-| depression4 | 1                   |       1.29 |     0.79 |      2.12 |  0.3075 | 7.8e-05 |
-| depression4 | 2                   |       2.05 |     1.22 |      3.44 |  0.0066 |         |
-| depression4 | 3                   |       3.14 |     1.69 |      5.83 |  0.0003 |         |
-| hostility3  | 1                   |       1.46 |     0.95 |      2.25 |  0.0865 | 0.0179  |
-| hostility3  | 2                   |       1.85 |     1.08 |      3.17 |  0.0246 |         |
-| authority4  | 1                   |       1.66 |     0.92 |      2.97 |  0.0909 | 0.0071  |
-| authority4  | 2                   |       2.10 |     1.12 |      3.95 |  0.0215 |         |
-| authority4  | 3                   |       2.79 |     1.18 |      6.60 |  0.0200 |         |
-| urgency4    | 15-25               |       1.92 |     0.59 |      6.26 |  0.2782 | 0.3896  |
-| urgency4    | 26-29               |       2.12 |     0.63 |      7.18 |  0.2256 |         |
-| urgency4    | 30+                 |       2.10 |     0.62 |      7.12 |  0.2342 |         |
-| jobstress   | Hi frus & low satis |       2.71 |     1.19 |      6.14 |  0.0172 |         |
+| predictor | term | odds.ratio | conf.low | conf.high | p.value | trend.p |
+|:---|:---|---:|---:|---:|---:|:---|
+| parent_warm_rev | One | 1.84 | 1.26 | 2.68 | 0.0017 | 0.0033 |
+| parent_warm_rev | None | 1.75 | 1.04 | 2.96 | 0.0356 |  |
+| parent_cold | One | 1.42 | 0.97 | 2.10 | 0.0744 | 0.0098 |
+| parent_cold | Both | 1.96 | 1.08 | 3.55 | 0.0263 |  |
+| cold_mother | Yes | 1.51 | 0.97 | 2.36 | 0.0672 |  |
+| cold_father | Yes | 1.54 | 1.06 | 2.25 | 0.0247 |  |
+| fam_struct | Two parents\* | 1.87 | 1.06 | 3.30 | 0.0295 | 0.1676 |
+| fam_struct | Single-birthparent | 1.04 | 0.54 | 2.02 | 0.8973 |  |
+| fam_struct | Other | 1.77 | 0.69 | 4.54 | 0.2323 |  |
+| depression4 | 1 | 1.21 | 0.76 | 1.94 | 0.4254 | 1.1e-05 |
+| depression4 | 2 | 2.07 | 1.28 | 3.34 | 0.0029 |  |
+| depression4 | 3 | 3.36 | 1.90 | 5.94 | 0.0000 |  |
+| hostility3 | 1 | 1.43 | 0.96 | 2.14 | 0.0809 | 0.0154 |
+| hostility3 | 2 | 1.81 | 1.09 | 2.99 | 0.0211 |  |
+| authority4 | 1 | 1.73 | 0.99 | 3.02 | 0.0552 | 0.0051 |
+| authority4 | 2 | 2.20 | 1.20 | 4.02 | 0.0108 |  |
+| authority4 | 3 | 2.61 | 1.12 | 6.09 | 0.0269 |  |
+| urgency4 | 21-24 | 1.07 | 0.63 | 1.82 | 0.7969 | 0.2637 |
+| urgency4 | 25-29 | 1.36 | 0.83 | 2.22 | 0.2270 |  |
+| urgency4 | 30-40 | 1.25 | 0.74 | 2.14 | 0.4040 |  |
+| jobstress | Hi frus & low satis | 2.45 | 1.10 | 5.47 | 0.0288 |  |
+
+### Multiple exposure models
+
+- **\[TO DO\]** Consider logistic models including multiple exposure
+  variables simultaneously

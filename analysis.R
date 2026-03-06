@@ -1,6 +1,6 @@
 
 # Required packages
-pacs <- c("tidyverse", "readxl", "janitor", "broom", "haven", "tableone", "gtsummary")
+pacs <- c("tidyverse", "readxl", "janitor", "broom", "mice", "tableone", "gtsummary")
 sapply(pacs, require, character.only = TRUE)
 
 # Read SAS data
@@ -87,14 +87,8 @@ overlap_f <- overlap0 %>%
     ),
     parent_warm = factor(parent_warm, labels = c("None", "One", "Both")),
     
-    # Parent situation -- Need to check
-    # parent_situ = case_when(
-    #   raised %in% 1:2 ~ 0,
-    #   e2q9r1 == 1 | e2q9r2 == 1 | e2q9r3 == 1 | e2q9r4 == 1 ~ 1
-    # ),
-    # parent_situ = factor(parent_situ, labels = c("Married in home", "One died/sep/div")),
-    
-    # Raised by -- Need to check
+    # Family structure: Based on AHS-2 variable "RAISED"
+    # Replace "Raised by" variable that appears in the manuscript
     fam_struct = case_when(
       raised == 1 ~ 0,
       raised == 2 ~ 1,
@@ -104,10 +98,10 @@ overlap_f <- overlap0 %>%
     fam_struct = factor(fam_struct, labels = c("Two birthparents", "Two parents*", "Single-birthparent", "Other")),
     
     # Personality traits
-    # Note reversed signs -- Need to check
+    # Note reversed signs
     urgency     = (11 - rushed) + competv + tasks + (11 - fasteat),
-    urgency4    = cut(urgency, breaks = c(4, 15, 26, 30, Inf), right = FALSE),
-    urgency4    = factor(urgency4, labels = c("4-14", "15-25", "26-29", '30+')),
+    urgency4    = cut(urgency, breaks = c(4, 21, 25, 30, Inf), right = FALSE),
+    urgency4    = factor(urgency4, labels = c("4-20", "21-24", "25-29", '30-40')),
     
     depression  = (2 - overcome) + (2 - happy) + (family - 1),
     depression4 = factor(depression),
@@ -126,19 +120,9 @@ overlap_f <- overlap0 %>%
       jobsat %in% 1:2 | jobfrus %in% 3:4 ~ 0,
       jobsat %in% 3:4 & jobfrus %in% 1:2 ~ 1
     ),
-    # jobstress = ifelse(is.na(jobsat) | is.na(jobfrus), NA_integer_, jobstress),
     jobstress = factor(jobstress, labels = c("Low frus or hi satis", "Hi frus & low satis"))
   )
 
-overlap_f %>% 
-  filter(raised == 1) %>% 
-  select(starts_with('e2')) %>% 
-  distinct() %>% 
-  print(n = Inf)
-
-overlap_f %>% 
-  filter(raised == 5) %>% 
-  count(across(starts_with("e2q9r")), sort = TRUE)
 
 # Fibromyalgia cases ------------------------------------------------------
 
@@ -169,6 +153,7 @@ overlap_f %>%
   count(fibro_inc) %>% 
   mutate(pct = n / sum(n) * 100)
 
+# Cross-tab between fibroy (dx year) and fibro (treated or not)
 overlap_f %>%
   mutate(
     fibroy = factor(fibroy, labels = c("<5 yrs", "5-9 yrs", "10-14 yrs", "15-19 yrs", "20+ yrs"), levels = 1:5),
@@ -177,10 +162,16 @@ overlap_f %>%
   tabyl(fibroy, fibro) %>% 
   adorn_totals(where = c("row", "col"))
 
+# Load imputed data -------------------------------------------------------
+
+# Load imputed data (post-processed) from RDS file
+imputed_processed <- readRDS("imputed_processed.rds")
+
+
  # Table 1 -----------------------------------------------------------------
 
 # Variables to be included 
-# It appears that all vars come from AHS-1
+# all vars come from AHS-1, except for family structure
 table_vars <- c(
   "agecat",
   "agein",
@@ -194,8 +185,6 @@ table_vars <- c(
   "parent_cold",
   "cold_mother",
   "cold_father",
-  # "parent_situ",
-  # "raised_by",
   "fam_struct",
   "depression4",
   "hostility3",
@@ -204,42 +193,38 @@ table_vars <- c(
   "jobstress"
 )
 
-# overlap_f %>% CreateTableOne(
-#   vars = table_vars, 
-#   strata = "fm_stat", 
-#   data = .,
-#   includeNA = TRUE
-#   ) %>% 
-#   print(showAllLevels = TRUE)
+# Use the first imputation
+imp1 <- complete(imputed_processed, action = 1)
 
-overlap_f %>%
+imp1 %>%
   select(all_of(table_vars), fm_stat) %>% 
   tbl_summary(
     by = "fm_stat",
     statistic = list(all_continuous() ~ "{mean} ({sd})"),
     digits = all_continuous() ~ 1,
     type = list(employ2 ~ "categorical", cold_mother ~ "categorical", cold_father ~ "categorical"),
-    missing = "always",
-    missing_text = "(Missing)"
+    # missing = "always",
+    # missing_text = "(Missing)"
   ) %>%
+  add_overall() %>% 
   add_p(
     test = list(all_continuous() ~ "t.test"),
     pvalue_fun = label_style_pvalue(digits = 3),
   )
 
 # Check the number of missing values
-overlap_f %>% 
-  select(all_of(table_vars)) %>%
-  select(-agecat, -bmicat) %>% 
-  map(~ sum(is.na(.x))) %>% 
-  data.frame(n.miss = unlist(.)) %>% 
-  select(n.miss) %>% 
-  mutate(pct_miss = round(n.miss / nrow(overlap_f) * 100, 2))
-
+# overlap_f %>% 
+#   select(all_of(table_vars)) %>%
+#   select(-agecat, -bmicat) %>% 
+#   map(~ sum(is.na(.x))) %>% 
+#   data.frame(n.miss = unlist(.)) %>% 
+#   select(n.miss) %>% 
+#   mutate(pct_miss = round(n.miss / nrow(overlap_f) * 100, 2))
 
 # Distribution of continuous covariates -----------------------------------
+# Using the first imputed dataset
 
-overlap_f %>% 
+imp1 %>% 
   select(agein, ahs1_bmi) %>% 
   pivot_longer(1:2, names_to = "Variable", values_to = "Value") %>% 
   ggplot(aes(x = Value)) +
@@ -255,8 +240,6 @@ ind_vars <- c(
   "parent_cold",
   "cold_mother",
   "cold_father",
-  # "parent_situ",
-  # "raised_by",
   "fam_struct",
   "depression4",
   "hostility3",
@@ -274,106 +257,190 @@ covars <- c(
   "marital3"
 )
 
+
+# Multicollinearity among exposure variables ------------------------------
+# Using the first imputed data
+
+# Correlation matrix
+cm <- imp1 %>% 
+  select(all_of(ind_vars)) %>% 
+  mutate_all(as.numeric) %>% 
+  cor(method = "spearman", use = "pairwise")
+
+# Display coorrelation matrix: Lower triangle only
+cm[upper.tri(cm, diag = TRUE)] <- NA
+print(round(cm, 2), na.print = "")
+
+
 # Logistic regression: Unadjusted ORs -------------------------------------
 
-# Reverse order for parent_warm
-overlap_f2 <- overlap_f %>% 
-  mutate(parent_warm = fct_rev(parent_warm))
+# Exposure variables of interest
+ind_vars <- c(
+  "parent_warm_rev",
+  "parent_cold",
+  "cold_mother",
+  "cold_father",
+  "fam_struct",
+  "depression4",
+  "hostility3",
+  "authority4",
+  "urgency4",
+  "jobstress"
+)
 
-# Unadjusted ORs
+# Covariates
+covars <- c(
+  "agein",
+  "ahs1_bmi",
+  "educat3",
+  "employ2",
+  "marital3"
+)
+
+# Function to run logistic reg on mids object
+mice_logistic <- function(formula){
+  model_fits <- with(imputed_processed, glm(as.formula(formula), family = "binomial"))
+  pooled_results <- pool(model_fits)
+  out <- summary(pooled_results, conf.int = TRUE, exponentiate = TRUE) %>% 
+    slice(-1) %>% 
+    select(term, estimate, conf.low, conf.high, p.value)
+}
+
 # Create models
-model_formulas <- map(ind_vars, ~reformulate(.x, response = "fibro_inc")) %>% 
-  setNames(ind_vars)
+model_formulas <- paste0("fibro_inc ~ ", ind_vars)
 
 # Run models
-unadjusted_results <- map(model_formulas, ~glm(.x, data = overlap_f2, family = "binomial"))
-
-# Multivariate Wald tests
-# Significant: parent_warm, depression4, hostility3
-unadjusted_results %>% 
-  map_dfc(~anova(.x)[["Pr(>Chi)"]]) 
-
-# Get unadjusted ORs
-unadj_OR <- map_dfr(unadjusted_results, tidy, .id = "predictor") %>%
+unadjusted_results <- map(model_formulas, ~ mice_logistic(.x)) %>% 
+  bind_rows() %>%
+  remove_rownames() %>% 
   mutate(
-    odds_ratio = exp(estimate), 
-    conf_low = exp(estimate - 1.96 * std.error),
-    conf_high = exp(estimate + 1.96 * std.error)
-  ) %>%
-  filter(term != "(Intercept)")
-
-unadj_OR <- unadj_OR %>%  
-  mutate(predictor = factor(predictor, levels = unique(unadj_OR$predictor))) %>% 
-  select(predictor, term, odds_ratio, conf_low, conf_high, p.value) %>% 
-  mutate(term = gsub(paste0(ind_vars, collapse = "|"), "", term))
-
-unadj_OR %>% split(.$predictor)
-
-# unadj_OR %>% 
-#   write_csv("./results/All_models_unadjusted_ORs.csv")
+    predictor = str_extract(as.character(term), paste0(ind_vars, collapse = "|")),
+    term = gsub(paste0(ind_vars, collapse = "|"), "", term)
+    ) %>% 
+  select(predictor, everything())
 
 # Trend p-values
-ind_vars_num <- paste0("as.numeric(", ind_vars, ")")
-model_formulas <- map(ind_vars_num, ~reformulate(.x, response = "fibro_inc")) %>% 
-  setNames(ind_vars)
+model_formulas <- paste0("fibro_inc ~ as.numeric(", ind_vars, ")")
+unadjusted_trendp <- map(model_formulas, ~ mice_logistic(.x)) %>% 
+  bind_rows() %>%
+  remove_rownames() %>% 
+  mutate(term = gsub("as.numeric\\(|\\)", "", term)) %>% 
+  rename(trend.p = p.value) %>% 
+  filter(!(term %in% c("jobstress", "cold_mother", "cold_father"))) %>% 
+  mutate(trend.p = format.pval(trend.p, digits = 2)) %>% 
+  select(term, trend.p) 
 
-trend_p <- model_formulas %>% 
-  map(~ glm(.x, data = overlap_f2, family = "binomial")) %>% 
-  map_dbl(~ coef(summary(.x))[2, "Pr(>|z|)"])
-
-trend_p_df <- data.frame(trend_p = trend_p) %>% 
-  rownames_to_column("predictor") %>% 
-  filter(predictor != "jobstress") %>% 
-  mutate(trend_p = format.pval(trend_p, digits = 2))
-
-map(trend_p_df, class)
-
-unadj_OR %>% 
-  left_join(trend_p_df, by = "predictor") %>% 
+unadjusted_results %>% 
+  left_join(unadjusted_trendp, by = c("predictor" = "term")) %>% 
+  rename(odds.ratio = estimate) %>% 
+  mutate(across(odds.ratio:conf.high, round, 2)) %>%
   group_by(predictor) %>%
-  mutate(trend_p = if_else(row_number() == 1, trend_p, NA_character_)) %>%
-  ungroup()
+  mutate(trend.p = if_else(row_number() == 1, trend.p, NA_character_)) %>%
+  ungroup() %>% 
+  print(n = Inf)
 
 # Logistic regression: Adjusted ORs ---------------------------------------
 
-# Adjusted ORs
 # Create models
-model_formulas <- map(ind_vars, ~reformulate(c(.x, covars), response = "fibro_inc")) %>% 
-  setNames(ind_vars)
+model_formulas <- paste0("fibro_inc ~ ", ind_vars, " + agein + ahs1_bmi + educat3 + employ2 + marital3")
 
 # Run models
-adjusted_results <- map(model_formulas, ~glm(.x, data = overlap_f2, family = "binomial"))
-
-# Get adjusted ORs
-adjusted_OR <- map_dfr(adjusted_results, tidy, .id = "predictor") %>%
+adjusted_results <- map(model_formulas, ~ mice_logistic(.x)) %>% 
+  bind_rows() %>%
+  remove_rownames() %>% 
   mutate(
-    odds_ratio = exp(estimate), 
-    conf_low = exp(estimate - 1.96 * std.error),
-    conf_high = exp(estimate + 1.96 * std.error)
-  ) %>%
-  filter(term != "(Intercept)") %>% 
-  select(predictor, term, odds_ratio, conf_low, conf_high, p.value) 
-
-# adjusted_OR %>% 
-#   write_csv("./results/All_models_adjusted_ORs.csv")
+    predictor = str_extract(as.character(term), paste0(ind_vars, collapse = "|")),
+    term = gsub(paste0(ind_vars, collapse = "|"), "", term)
+    ) %>% 
+  filter(!is.na(predictor)) %>% 
+  select(predictor, everything())
 
 # Trend p-values
-ind_vars_num <- paste0("as.numeric(", ind_vars, ")")
-model_formulas <- map(ind_vars_num, ~reformulate(c(.x, covars), response = "fibro_inc")) %>% 
-  setNames(ind_vars)
+model_formulas <- paste0("fibro_inc ~ as.numeric(", ind_vars, ")" ,  " + agein + ahs1_bmi + educat3 + employ2 + marital3")
+adjusted_trendp <- map(model_formulas, ~ mice_logistic(.x)) %>% 
+  bind_rows() %>%
+  remove_rownames() %>% 
+  mutate(
+    predictor = str_extract(as.character(term), paste0(ind_vars, collapse = "|")),
+    term = gsub("as.numeric\\(|\\)", "", term)
+    ) %>% 
+  rename(trend.p = p.value) %>% 
+  filter(predictor %in% ind_vars) %>% 
+  filter(!(term %in% c("jobstress", "cold_mother", "cold_father"))) %>% 
+  mutate(trend.p = format.pval(trend.p, digits = 2)) %>% 
+  select(predictor, trend.p) 
 
-trend_p <- model_formulas %>% 
-  map(~ glm(.x, data = overlap_f2, family = "binomial")) %>% 
-  map_dbl(~ coef(summary(.x))[2, "Pr(>|z|)"])
-
-trend_p_df <- data.frame(trend_p = trend_p) %>% 
-  rownames_to_column("predictor") %>% 
-  filter(predictor != "jobstress") %>% 
-  mutate(trend_p = format.pval(trend_p, digits = 2))
-
-adjusted_OR %>% 
-  filter(grepl(paste0(ind_vars, collapse = "|"), term)) %>% 
-  left_join(trend_p_df, by = "predictor") %>% 
+adjusted_results %>% 
+  left_join(adjusted_trendp, by = "predictor") %>% 
   group_by(predictor) %>%
-  mutate(trend_p = if_else(row_number() == 1, trend_p, NA_character_)) %>%
-  ungroup()
+  mutate(trend.p = if_else(row_number() == 1, trend.p, NA_character_)) %>%
+  ungroup() %>% 
+  print(n = Inf)
+
+# Checking non-linearity on BMI -------------------------------------------
+
+# Using the first imputed data
+
+# GAM model including BMI cubic splines
+gam_bmi_nonlin <- mgcv::gam(
+  fibro_inc ~ agein + s(ahs1_bmi, bs = "cr") + educat3 + employ2 + marital3,
+  family = binomial, 
+  data = overlap_f,
+  method = "GCV.Cp"
+  )
+
+# BMI not significant
+# Effective df is very close to 1, suggesting the relationship is linear 
+summary(gam_bmi_nonlin)
+
+# LR test for non-linearity
+# GAM model including BMI cubic splines, using unpenalized model
+gam_bmi_nonlin_unpenal <- mgcv::gam(
+  fibro_inc ~ agein + s(ahs1_bmi, bs = "cr", fx = TRUE) + educat3 + employ2 + marital3,
+  family = binomial, 
+  data = overlap_f,
+  method = "GCV.Cp"
+)
+
+summary(gam_bmi_nonlin_unpenal)
+
+# Linear model
+gam_bmi_lin <- mgcv::gam(
+  fibro_inc ~ agein + ahs1_bmi + educat3 + employ2 + marital3,
+  family = binomial, 
+  data = overlap_f,
+  method = "GCV.Cp"
+)
+
+# Non-linearity not significant
+anova(gam_bmi_nonlin_unpenal, gam_bmi_lin)
+
+# Checking non-linearity on age -------------------------------------------
+
+# GAM model including age cubic splines
+gam_age_nonlin <- mgcv::gam(
+  fibro_inc ~ s(agein, bs = "cr") + ahs1_bmi + educat3 + employ2 + marital3,
+  family = binomial, 
+  data = overlap_f,
+  method = "GCV.Cp"
+  )
+
+# Ages EFD is close to 1, suggesting the relationship is linear
+summary(gam_age_nonlin)
+
+# Using unpenalized model 
+gam_age_nonlin_unpenal <- mgcv::gam(
+  fibro_inc ~ s(agein, bs = "cr", fx = TRUE) + ahs1_bmi + educat3 + employ2 + marital3,
+  family = binomial, 
+  data = overlap_f,
+  method = "GCV.Cp"
+  )
+
+gam_age_lin <- mgcv::gam(
+  fibro_inc ~ agein + ahs1_bmi + educat3 + employ2 + marital3,
+  family = binomial, 
+  data = overlap_f,
+  method = "GCV.Cp"
+)
+
+anova(gam_age_nonlin_unpenal, gam_age_lin)
