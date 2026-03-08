@@ -281,5 +281,29 @@ AHS Overlap Population Fibromyalgia Study
 
 ### Multiple exposure models
 
-- **\[TO DO\]** Consider logistic models including multiple exposure
-  variables simultaneously
+- Following four logistic models were fitted:
+  - Includes either one of psychological variables, depression,
+    hostility, authority, or time urgency
+  - Always includes cold parent (none/one/both, none as the reference)
+  - Also adjusting for age, BMI, education, employment and marital
+    status
+  - using data that include only those subjects who were raised by
+    either “two birthparents” or “two parents (one or both were not
+    birth parent)
+- [See the Excel table for odds ratios in the four
+  models](./results/pooled_results_OR_multi_exposure_models.xlsx)
+
+![](./images/pooled_results_OR_multi_exposure_models.png)
+
+- In all the four models, higher odds of developing FM were observed
+  when one or both were perceived cold, but ORs were not statistically
+  significant (OR = 1.25 to 1.39 for one cold parent; 1.58 to 1.71 for
+  both cold)
+
+- Among psychological characteristics:
+
+  - Depression and authority scales were associated with significantly
+    higher odds of FM in a “dose-response” manner, adjusting for cold
+    parenting, demographics and BMI
+  - However, there were no statistically significant ORs for hostility
+    and time urgency scales

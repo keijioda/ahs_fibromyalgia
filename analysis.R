@@ -489,7 +489,7 @@ mem2_fit <- with(
 
 mem2_fit_summary <- summary(mem2_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
   select(term, estimate, conf.low, conf.high, p.value) %>% 
-  mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
+  # mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
   mutate(p.value = format.pval(p.value, digits = 3)) %>% 
   slice(-1)
 
@@ -509,7 +509,7 @@ mem3_fit <- with(
 
 mem3_fit_summary <- summary(mem3_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
   select(term, estimate, conf.low, conf.high, p.value) %>% 
-  mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
+  # mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
   mutate(p.value = format.pval(p.value, digits = 3)) %>% 
   slice(-1)
 
@@ -529,7 +529,7 @@ mem4_fit <- with(
 
 mem4_fit_summary <- summary(mem4_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
   select(term, estimate, conf.low, conf.high, p.value) %>% 
-  mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
+  # mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
   mutate(p.value = format.pval(p.value, digits = 3)) %>% 
   slice(-1)
 
@@ -549,7 +549,7 @@ mem5_fit <- with(
 
 mem5_fit_summary <- summary(mem5_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
   select(term, estimate, conf.low, conf.high, p.value) %>% 
-  mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
+  # mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
   mutate(p.value = format.pval(p.value, digits = 3)) %>% 
   slice(-1)
 
