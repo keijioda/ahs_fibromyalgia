@@ -175,18 +175,7 @@ AHS Overlap Population Fibromyalgia Study
   warm-parents and cold-parents are entered into the model
   simultaneously
 
-|  | parent_warm | parent_cold | cold_mother | cold_father | fam_struct | depression4 | hostility3 | authority4 | urgency4 | jobstress |
-|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| parent_warm |  |  |  |  |  |  |  |  |  |  |
-| parent_cold | -0.79 |  |  |  |  |  |  |  |  |  |
-| cold_mother | -0.56 | 0.64 |  |  |  |  |  |  |  |  |
-| cold_father | -0.67 | 0.83 | 0.19 |  |  |  |  |  |  |  |
-| fam_struct | -0.27 | 0.09 | 0.12 | 0.03 |  |  |  |  |  |  |
-| depression4 | -0.11 | 0.12 | 0.10 | 0.08 | 0.01 |  |  |  |  |  |
-| hostility3 | -0.06 | 0.08 | 0.07 | 0.05 | 0.00 | 0.12 |  |  |  |  |
-| authority4 | -0.01 | 0.00 | 0.02 | -0.01 | -0.01 | 0.20 | -0.04 |  |  |  |
-| urgency4 | 0.01 | 0.01 | 0.02 | 0.00 | -0.02 | 0.06 | 0.12 | -0.01 |  |  |
-| jobstress | -0.09 | 0.06 | 0.08 | 0.05 | 0.03 | 0.16 | 0.07 | 0.03 | 0.07 |  |
+![](summary_files/figure-gfm/correlation_matrix-1.png)<!-- -->
 
 ## Logistic models
 
@@ -196,6 +185,9 @@ AHS Overlap Population Fibromyalgia Study
 
 - Logistic models were fitted for each of 10 imputed datasets, and the
   results were pooled using Rubin’s rules
+
+- ([See the table of unadjusted and adjusted odds ratio here in Excel
+  format](./results/pooled_results_OR_unadj_and_adj_for_demog_xlsx))
 
 ### Unadjusted odds ratios
 

@@ -271,111 +271,8 @@ cm <- imp1 %>%
 cm[upper.tri(cm, diag = TRUE)] <- NA
 print(round(cm, 2), na.print = "")
 
+ggcorrplot::ggcorrplot(cm, lab = TRUE)
 
-# Logistic regression: Unadjusted ORs -------------------------------------
-
-# Exposure variables of interest
-ind_vars <- c(
-  "parent_warm_rev",
-  "parent_cold",
-  "cold_mother",
-  "cold_father",
-  "fam_struct",
-  "depression4",
-  "hostility3",
-  "authority4",
-  "urgency4",
-  "jobstress"
-)
-
-# Covariates
-covars <- c(
-  "agein",
-  "ahs1_bmi",
-  "educat3",
-  "employ2",
-  "marital3"
-)
-
-# Function to run logistic reg on mids object
-mice_logistic <- function(formula){
-  model_fits <- with(imputed_processed, glm(as.formula(formula), family = "binomial"))
-  pooled_results <- pool(model_fits)
-  out <- summary(pooled_results, conf.int = TRUE, exponentiate = TRUE) %>% 
-    slice(-1) %>% 
-    select(term, estimate, conf.low, conf.high, p.value)
-}
-
-# Create models
-model_formulas <- paste0("fibro_inc ~ ", ind_vars)
-
-# Run models
-unadjusted_results <- map(model_formulas, ~ mice_logistic(.x)) %>% 
-  bind_rows() %>%
-  remove_rownames() %>% 
-  mutate(
-    predictor = str_extract(as.character(term), paste0(ind_vars, collapse = "|")),
-    term = gsub(paste0(ind_vars, collapse = "|"), "", term)
-    ) %>% 
-  select(predictor, everything())
-
-# Trend p-values
-model_formulas <- paste0("fibro_inc ~ as.numeric(", ind_vars, ")")
-unadjusted_trendp <- map(model_formulas, ~ mice_logistic(.x)) %>% 
-  bind_rows() %>%
-  remove_rownames() %>% 
-  mutate(term = gsub("as.numeric\\(|\\)", "", term)) %>% 
-  rename(trend.p = p.value) %>% 
-  filter(!(term %in% c("jobstress", "cold_mother", "cold_father"))) %>% 
-  mutate(trend.p = format.pval(trend.p, digits = 2)) %>% 
-  select(term, trend.p) 
-
-unadjusted_results %>% 
-  left_join(unadjusted_trendp, by = c("predictor" = "term")) %>% 
-  rename(odds.ratio = estimate) %>% 
-  mutate(across(odds.ratio:conf.high, round, 2)) %>%
-  group_by(predictor) %>%
-  mutate(trend.p = if_else(row_number() == 1, trend.p, NA_character_)) %>%
-  ungroup() %>% 
-  print(n = Inf)
-
-# Logistic regression: Adjusted ORs ---------------------------------------
-
-# Create models
-model_formulas <- paste0("fibro_inc ~ ", ind_vars, " + agein + ahs1_bmi + educat3 + employ2 + marital3")
-
-# Run models
-adjusted_results <- map(model_formulas, ~ mice_logistic(.x)) %>% 
-  bind_rows() %>%
-  remove_rownames() %>% 
-  mutate(
-    predictor = str_extract(as.character(term), paste0(ind_vars, collapse = "|")),
-    term = gsub(paste0(ind_vars, collapse = "|"), "", term)
-    ) %>% 
-  filter(!is.na(predictor)) %>% 
-  select(predictor, everything())
-
-# Trend p-values
-model_formulas <- paste0("fibro_inc ~ as.numeric(", ind_vars, ")" ,  " + agein + ahs1_bmi + educat3 + employ2 + marital3")
-adjusted_trendp <- map(model_formulas, ~ mice_logistic(.x)) %>% 
-  bind_rows() %>%
-  remove_rownames() %>% 
-  mutate(
-    predictor = str_extract(as.character(term), paste0(ind_vars, collapse = "|")),
-    term = gsub("as.numeric\\(|\\)", "", term)
-    ) %>% 
-  rename(trend.p = p.value) %>% 
-  filter(predictor %in% ind_vars) %>% 
-  filter(!(term %in% c("jobstress", "cold_mother", "cold_father"))) %>% 
-  mutate(trend.p = format.pval(trend.p, digits = 2)) %>% 
-  select(predictor, trend.p) 
-
-adjusted_results %>% 
-  left_join(adjusted_trendp, by = "predictor") %>% 
-  group_by(predictor) %>%
-  mutate(trend.p = if_else(row_number() == 1, trend.p, NA_character_)) %>%
-  ungroup() %>% 
-  print(n = Inf)
 
 # Checking non-linearity on BMI -------------------------------------------
 
@@ -444,3 +341,215 @@ gam_age_lin <- mgcv::gam(
 )
 
 anova(gam_age_nonlin_unpenal, gam_age_lin)
+
+
+# Logistic regression: Unadjusted ORs -------------------------------------
+
+# Exposure variables of interest
+ind_vars <- c(
+  "parent_warm_rev",
+  "parent_cold",
+  "cold_mother",
+  "cold_father",
+  "fam_struct",
+  "depression4",
+  "hostility3",
+  "authority4",
+  "urgency4",
+  "jobstress"
+)
+
+# Covariates
+covars <- c(
+  "agein",
+  "ahs1_bmi",
+  "educat3",
+  "employ2",
+  "marital3"
+)
+
+# Function to run logistic reg on mids object
+mice_logistic <- function(formula){
+  model_fits <- with(imputed_processed, glm(as.formula(formula), family = "binomial"))
+  pooled_results <- pool(model_fits)
+  out <- summary(pooled_results, conf.int = TRUE, exponentiate = TRUE) %>% 
+    slice(-1) %>% 
+    select(term, estimate, conf.low, conf.high, p.value)
+}
+
+# Create models
+model_formulas <- paste0("fibro_inc ~ ", ind_vars)
+
+# Run models
+unadjusted_results <- map(model_formulas, ~ mice_logistic(.x)) %>% 
+  bind_rows() %>%
+  remove_rownames() %>% 
+  mutate(
+    predictor = str_extract(as.character(term), paste0(ind_vars, collapse = "|")),
+    term = gsub(paste0(ind_vars, collapse = "|"), "", term)
+    ) %>% 
+  select(predictor, everything())
+
+# Trend p-values
+model_formulas <- paste0("fibro_inc ~ as.numeric(", ind_vars, ")")
+unadjusted_trendp <- map(model_formulas, ~ mice_logistic(.x)) %>% 
+  bind_rows() %>%
+  remove_rownames() %>% 
+  mutate(term = gsub("as.numeric\\(|\\)", "", term)) %>% 
+  rename(trend.p = p.value) %>% 
+  filter(!(term %in% c("jobstress", "cold_mother", "cold_father"))) %>% 
+  mutate(trend.p = format.pval(trend.p, digits = 2)) %>% 
+  select(term, trend.p) 
+
+# options(pillar.sigfig = 5)
+# options(pillar.sigfig = NULL)
+unadjusted_results %>% 
+  left_join(unadjusted_trendp, by = c("predictor" = "term")) %>% 
+  rename(odds.ratio = estimate) %>% 
+  mutate(across(odds.ratio:conf.high, \(x) round(x, 2))) %>%
+  group_by(predictor) %>%
+  mutate(trend.p = if_else(row_number() == 1, trend.p, NA_character_)) %>%
+  ungroup() %>% 
+  print(n = Inf)
+
+# Logistic regression: Adjusted ORs ---------------------------------------
+
+# Create models
+model_formulas <- paste0("fibro_inc ~ ", ind_vars, " + agein + ahs1_bmi + educat3 + employ2 + marital3")
+
+# Run models
+adjusted_results <- map(model_formulas, ~ mice_logistic(.x)) %>% 
+  bind_rows() %>%
+  remove_rownames() %>% 
+  mutate(
+    predictor = str_extract(as.character(term), paste0(ind_vars, collapse = "|")),
+    term = gsub(paste0(ind_vars, collapse = "|"), "", term)
+    ) %>% 
+  filter(!is.na(predictor)) %>% 
+  select(predictor, everything())
+
+# Trend p-values
+model_formulas <- paste0("fibro_inc ~ as.numeric(", ind_vars, ")" ,  " + agein + ahs1_bmi + educat3 + employ2 + marital3")
+adjusted_trendp <- map(model_formulas, ~ mice_logistic(.x)) %>% 
+  bind_rows() %>%
+  remove_rownames() %>% 
+  mutate(
+    predictor = str_extract(as.character(term), paste0(ind_vars, collapse = "|")),
+    term = gsub("as.numeric\\(|\\)", "", term)
+    ) %>% 
+  rename(trend.p = p.value) %>% 
+  filter(predictor %in% ind_vars) %>% 
+  filter(!(term %in% c("jobstress", "cold_mother", "cold_father"))) %>% 
+  mutate(trend.p = format.pval(trend.p, digits = 2)) %>% 
+  select(predictor, trend.p) 
+
+adjusted_results %>% 
+  left_join(adjusted_trendp, by = "predictor") %>% 
+  group_by(predictor) %>%
+  mutate(trend.p = if_else(row_number() == 1, trend.p, NA_character_)) %>%
+  ungroup() %>% 
+  print(n = Inf)
+
+
+# Multi-exposure models ---------------------------------------------------
+
+# Model with cold_mother and cold father together
+# Only among those with two birthparents or two parents
+fm_mem1 <- "fibro_inc ~ cold_mother + cold_father + agein + ahs1_bmi + educat3 + employ2 + marital3"
+
+mem1_fit <- with(
+  imputed_processed, 
+  glm(
+    as.formula(fm_mem1),
+    family = "binomial",
+    subset = (fam_struct %in% c("Two birthparents", "Two parents*"))
+    )
+  ) %>% 
+  pool()
+
+mem1_fit_summary <- summary(mem1_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
+  select(term, estimate, conf.low, conf.high, p.value) %>% 
+  mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
+  mutate(p.value = format.pval(p.value, digits = 3)) %>% 
+  slice(-1)
+
+# Model with cold parents and depression scale
+# Only among those with two birthparents or two parents
+fm_mem2 <- "fibro_inc ~ parent_cold + depression4 + agein + ahs1_bmi + educat3 + employ2 + marital3"
+
+mem2_fit <- with(
+  imputed_processed, 
+  glm(
+    as.formula(fm_mem2), 
+    family = "binomial",
+    subset = (fam_struct %in% c("Two birthparents", "Two parents*"))
+    )
+  ) %>% 
+  pool()
+
+mem2_fit_summary <- summary(mem2_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
+  select(term, estimate, conf.low, conf.high, p.value) %>% 
+  mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
+  mutate(p.value = format.pval(p.value, digits = 3)) %>% 
+  slice(-1)
+
+# Model with cold parents and hostility scale
+# Only among those with two birthparents or two parents
+fm_mem3 <- "fibro_inc ~ parent_cold + hostility3 + agein + ahs1_bmi + educat3 + employ2 + marital3"
+
+mem3_fit <- with(
+  imputed_processed, 
+  glm(
+    as.formula(fm_mem3), 
+    family = "binomial",
+    subset = (fam_struct %in% c("Two birthparents", "Two parents*"))
+    )
+  ) %>% 
+  pool()
+
+mem3_fit_summary <- summary(mem3_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
+  select(term, estimate, conf.low, conf.high, p.value) %>% 
+  mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
+  mutate(p.value = format.pval(p.value, digits = 3)) %>% 
+  slice(-1)
+
+# Model with cold parents and authority scale
+# Only among those with two birthparents or two parents
+fm_mem4 <- "fibro_inc ~ parent_cold + authority4 + agein + ahs1_bmi + educat3 + employ2 + marital3"
+
+mem4_fit <- with(
+  imputed_processed, 
+  glm(
+    as.formula(fm_mem4), 
+    family = "binomial",
+    subset = (fam_struct %in% c("Two birthparents", "Two parents*"))
+    )
+  ) %>% 
+  pool()
+
+mem4_fit_summary <- summary(mem4_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
+  select(term, estimate, conf.low, conf.high, p.value) %>% 
+  mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
+  mutate(p.value = format.pval(p.value, digits = 3)) %>% 
+  slice(-1)
+
+# Model with cold parents and time urgency scale
+# Only among those with two birthparents or two parents
+fm_mem5 <- "fibro_inc ~ parent_cold + urgency4 + agein + ahs1_bmi + educat3 + employ2 + marital3"
+
+mem5_fit <- with(
+  imputed_processed, 
+  glm(
+    as.formula(fm_mem5), 
+    family = "binomial",
+    subset = (fam_struct %in% c("Two birthparents", "Two parents*"))
+    )
+  ) %>% 
+  pool()
+
+mem5_fit_summary <- summary(mem5_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
+  select(term, estimate, conf.low, conf.high, p.value) %>% 
+  mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
+  mutate(p.value = format.pval(p.value, digits = 3)) %>% 
+  slice(-1)
+

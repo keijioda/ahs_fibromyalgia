@@ -347,10 +347,11 @@ cm <- imp1 %>%
   mutate_all(as.numeric) %>%
   cor(method = "spearman", use = "pairwise")
 
-# Display coorelation matrix: Lower triangle only
-options(knitr.kable.NA = "")
-cm[upper.tri(cm, diag = TRUE)] <- NA
-round(cm, 2) %>% knitr::kable()
+ggcorrplot::ggcorrplot(
+  cm, 
+  lab = TRUE, 
+  type = "lower",
+  title = "Spearman cor matrix among exposures")
 
 ```
 
@@ -360,6 +361,7 @@ round(cm, 2) %>% knitr::kable()
 
 * Logistic models were fitted for each of 10 imputed datasets, and the results were pooled using Rubin's rules
 
+* ([See the table of unadjusted and adjusted odds ratio here in Excel format](./results/pooled_results_OR_unadj_and_adj_for_demog_xlsx))
 
 ### Unadjusted odds ratios
 
