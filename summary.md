@@ -296,9 +296,9 @@ AHS Overlap Population Fibromyalgia Study
 ![](./images/pooled_results_OR_multi_exposure_models.png)
 
 - In all the four models, higher odds of developing FM were observed
-  when one or both were perceived cold, but ORs were not statistically
-  significant (OR = 1.25 to 1.39 for one cold parent; 1.58 to 1.71 for
-  both cold)
+  when one or both parents were perceived cold, but ORs were not
+  statistically significant (OR = 1.25 to 1.39 for one cold parent; 1.58
+  to 1.71 for both cold)
 
 - Among psychological characteristics:
 
