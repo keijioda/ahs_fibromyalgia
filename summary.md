@@ -187,7 +187,7 @@ AHS Overlap Population Fibromyalgia Study
   results were pooled using Rubin’s rules
 
 - ([See the table of unadjusted and adjusted odds ratio here in Excel
-  format](./results/pooled_results_OR_unadj_and_adj_for_demog_xlsx))
+  format](./results/pooled_results_OR_unadj_and_adj_for_demog.xlsx))
 
 ### Unadjusted odds ratios
 
