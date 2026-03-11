@@ -116,7 +116,9 @@ overlap_f <- overlap0 %>%
       jobsat %in% 1:2 | jobfrus %in% 3:4 ~ 0,
       jobsat %in% 3:4 & jobfrus %in% 1:2 ~ 1
     ),
-    jobstress = factor(jobstress, labels = c("Low frus or hi satis", "Hi frus & low satis"))
+    jobstress = factor(jobstress, labels = c("Low frus or hi satis", "Hi frus & low satis")),
+    
+    ulcer_dx = factor(ulcerc - 1, labels = c("No", "Yes"))
   )
 
 ```
@@ -233,6 +235,7 @@ overlap_f %>%
     * Unemployed: Out of work, student, homemaker, volunteer worker, retired
   * Marital status: Based on the AHS-1 variable `MaritalCQ`, categorized into 3 levels as shown in the table
   * Smoking status: Based on AHS-1 Q27, categorized into 2 levels: Never or Ever
+  * Prevalent stomach ulcer: Based on AHS-1 Q5: No or Yes 
 
 * (The descriptive table below was produced using the first imputed dataset)
 
@@ -246,7 +249,7 @@ overlap_f %>%
 # Load imputed data -------------------------------------------------------
 
 # Load imputed data (post-processed) from RDS file
-imputed_processed <- readRDS("imputed_processed.rds")
+imputed_processed <- readRDS("imputed_processed2.rds")
 
 
  # Table 1 -----------------------------------------------------------------
@@ -262,6 +265,7 @@ table_vars <- c(
   "employ2",
   "marital3",
   "smoke2",
+  "ulcer_dx",
   "parent_warm",
   "parent_cold",
   "cold_mother",
@@ -283,7 +287,11 @@ imp1 %>%
     by = "fm_stat",
     statistic = list(all_continuous() ~ "{mean} ({sd})"),
     digits = all_continuous() ~ 1,
-    type = list(employ2 ~ "categorical", cold_mother ~ "categorical", cold_father ~ "categorical"),
+    type = list(
+      employ2 ~ "categorical", 
+      cold_mother ~ "categorical", 
+      cold_father ~ "categorical",
+      ulcer_dx ~ "categorical"),
     # missing = "always",
     # missing_text = "(Missing)"
   ) %>%
@@ -318,7 +326,7 @@ imp1 %>%
 
 * A Spearman correlation matrix among exposure variables is shown below:
   * A high correlation was observed between `parent_warm` and `parent_cold` (cor = -0.79), which is expected
-  * `cold_mother` and `cold_father` was only weakly correlated with each other (corr = 0.19)
+  * `cold_mother` and `cold_father` was only weakly correlated with each other (corr = 0.20)
 
 * Except for warm and cold parents, the correlations were not very strong. Multicollinearity should not pose a concern unless warm-parents and cold-parents are entered into the model simultaneously
 
@@ -396,7 +404,9 @@ covars <- c(
   "ahs1_bmi",
   "educat3",
   "employ2",
-  "marital3"
+  "marital3",
+  "smoke2",
+  "ulcer_dx"
 )
 
 # Function to run logistic reg on mids object
@@ -454,10 +464,13 @@ unadjusted_results %>%
   * BMI as continuous
     * ~~**[TO DO]** Check for non-linearity, possibly using a GAM model~~
     * Linearity assumption was checked for BMI using a generalized additive model that includes a non-linear term for BMI, adjusting for demographic variables
-    * The non-linear term of BMI was not significant (p = 0.116) and its effective df was close to 1 (EDF = 1.114), suggesting that the association between incident fibromyalgia and BMI is linear on logit scale when adjusting for demographic variables
+    * The non-linear term of BMI was not significant (p = 0.26) and its effective df was close to 1 (EDF = 1.441), suggesting that the association between incident fibromyalgia and BMI is (if any) linear on logit scale when adjusting for demographic variables
   * Education as categorical
   * Employment as binary (employed/unemployed)
   * Marital status as categorical
+  * Smoking as binary (Never/ever)
+  * Stomach ulcer (No/Yes)
+    * From AHS-1 questionnaire: "Has a doctor EVER told you that you had..."
 
 * Again, the logistic models were fitted for each of 10 imputed datasets, and the results were pooled using Rubin's rules
 
@@ -473,7 +486,9 @@ unadjusted_results %>%
 # Logistic regression: Adjusted ORs ---------------------------------------
 
 # Create models
-model_formulas <- paste0("fibro_inc ~ ", ind_vars, " + agein + ahs1_bmi + educat3 + employ2 + marital3")
+# Covariates
+add_covars <- paste0(covars, collapse = " + ")
+model_formulas <- paste0("fibro_inc ~ ", ind_vars, " + " , add_covars)
 
 # Run models
 adjusted_results <- map(model_formulas, ~ mice_logistic(.x)) %>% 
@@ -487,7 +502,7 @@ adjusted_results <- map(model_formulas, ~ mice_logistic(.x)) %>%
   select(predictor, everything())
 
 # Trend p-values
-model_formulas <- paste0("fibro_inc ~ as.numeric(", ind_vars, ")" ,  " + agein + ahs1_bmi + educat3 + employ2 + marital3")
+model_formulas <- paste0("fibro_inc ~ as.numeric(", ind_vars, ")" ,  " + ", add_covars)
 adjusted_trendp <- map(model_formulas, ~ mice_logistic(.x)) %>% 
   bind_rows() %>%
   remove_rownames() %>% 
@@ -520,16 +535,16 @@ adjusted_results %>%
 * Following four logistic models were fitted:
   * Includes either one of psychological variables, depression, hostility, authority, or time urgency
   * Always includes cold parent (none/one/both, none as the reference)
-  * Also adjusting for age, BMI, education, employment and marital status
+  * Also adjusting for age, BMI, education, employment, marital status, smoking, and stomach ulcer
   * using data that include only those subjects who were raised by either "two birthparents" or "two parents (one or both were not birth parent)
 
-* [See the Excel table for odds ratios in the four models](./results/pooled_results_OR_multi_exposure_models.xlsx)
+* [See the Excel table for odds ratios in the four models](./results/pooled_results_OR_multi_exposure_models_cold_parent.xlsx)
 
-![](./images/pooled_results_OR_multi_exposure_models.png)
+![](./images/pooled_results_OR_multi_exposure_models_cold_parent.png)
 
-* In all the four models, higher odds of developing FM were observed when one or both parents were perceived cold, but ORs were not statistically significant (OR = 1.25 to 1.39 for one cold parent; 1.58 to 1.71 for both cold)
+* In all the four models, higher odds of developing FM were observed when one or both parents were perceived cold, but ORs were not statistically significant (OR = 1.15 to 1.28 for one cold parent; 1.51 to 1.63 for both cold)
 
 * Among psychological characteristics:
-  * Depression and authority scales were associated with significantly higher odds of FM in a "dose-response" manner, adjusting for cold parenting, demographics and BMI
+  * Depression and authority scales were associated with significantly higher odds of FM in a "dose-response" manner, adjusting for cold parenting, demographics/lifestyle and stomach ulcer
   * However, there were no statistically significant ORs for hostility and time urgency scales
 
