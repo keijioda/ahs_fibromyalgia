@@ -457,7 +457,7 @@ unadjusted_results %>%
 
 ```
 
-### Odds ratios, adjusted for demographics and BMI
+### Odds ratios, adjusted for demographics, lifestyles and stomach ulcer
 
 * This time, we fit multivariable logistic models adjusting for:
   * Age as continuous
@@ -530,7 +530,9 @@ adjusted_results %>%
 
 ```
 
-### Multiple exposure models
+## Multiple exposure models
+
+### Cold parent + psychological variables
 
 * Following four logistic models were fitted:
   * Includes either one of psychological variables, depression, hostility, authority, or time urgency
@@ -548,3 +550,58 @@ adjusted_results %>%
   * Depression and authority scales were associated with significantly higher odds of FM in a "dose-response" manner, adjusting for cold parenting, demographics/lifestyle and stomach ulcer
   * However, there were no statistically significant ORs for hostility and time urgency scales
 
+### Warm parent + psychological variables
+
+* Similarly, four logistic models were fitted, this time replacing cold parent with warm parent
+  * Includes either one of psychological variables, depression, hostility, authority, or time urgency
+  * Always includes warm parent (none/one/both, both as the reference)
+  * Also adjusting for age, BMI, education, employment, marital status, smoking, and stomach ulcer
+  * using data that include only those subjects who were raised by either "two birthparents" or "two parents (one or both were not birth parent)
+
+* [See the Excel table for odds ratios in the four models](./results/pooled_results_OR_multi_exposure_models_warm_parent.xlsx)
+
+![](./images/pooled_results_OR_multi_exposure_models_warm_parent.png)
+
+* In all the four models, significantly higher odds of developing FM were observed when only one of parents were perceived warm (OR = 1.59 to 1.77). The ORs associated with no warm parents were slightly lower and not statistically significant (OR = 1.55 to 1.70)
+
+* Depression and authority scales were associated with significantly higher odds of FM in a "dose-response" manner, adjusting for warm parenting, demographics/lifestyle and stomach ulcer
+  * However, there were no statistically significant ORs for hostility and time urgency scales
+
+### Cold mother + psychological variables
+
+* Similarly, four logistic models were fitted, this time replacing cold/warm parent with **cold mother**
+  * Includes either one of psychological variables, depression, hostility, authority, or time urgency
+  * Always includes cold mother (no/yes; no as the reference)
+  * Also adjusting for age, BMI, education, employment, marital status, smoking, and stomach ulcer
+  * using data that include only those subjects who were raised by either "two birthparents", "two parents (one or both were not birth parent), or single female birthparent
+
+* [See the Excel table for odds ratios in the four models](./results/pooled_results_OR_multi_exposure_models_cold_mother.xlsx)
+
+![](./images/pooled_results_OR_multi_exposure_models_cold_mother.png)
+
+* In all the four models, higher odds of developing FM were observed with cold mother, but the ORs were not statistically significant (OR = 1.22 to 1.33).
+
+* Depression and authority scales were associated with significantly higher odds of FM in a "dose-response" manner, adjusting for cold mother, demographics/lifestyle and stomach ulcer
+  * However, there were no statistically significant ORs for hostility and time urgency scales
+
+## Change log
+
+* **03/14/2026**:
+  * For logistic models:
+    * Added two more covariates: Smoking status (Never/Ever) and stomach ulcer (No/Yes). See the section of "Descriptive table"
+      * Somehow, even though smoking was associated with the outcome in the descriptive table, this variable was never adjusted in logistic models in the manuscript
+      * Stomach ulcer was associated with the outcome and thus added into the models as a covariate
+  * Added more multiple exposure models
+    * Warm parent + psychological variables
+    * Cold mother + psychological variables
+
+* **03/07/2026**:
+  * Added the following sections:
+    * Exclusion criteria
+    * Multiple imputation
+    * Correlation among exposure variables
+    * Multiple exposure models
+  * Due to missing values, multiple imputation by chain equations was implemented. See the section of "Multiple imputation"
+  * For preliminary analyses, Spearman correlations among exposure variables were examined
+  * Some multiple exposure models were added: Cold parent + one of psychological variables
+    * The excel file containing the model summary was added into the repository
