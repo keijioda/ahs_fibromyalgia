@@ -1,6 +1,6 @@
 
 # Required packages
-pacs <- c("tidyverse", "readxl", "janitor", "broom", "mice", "tableone", "gtsummary")
+pacs <- c("tidyverse", "readxl", "janitor", "broom", "mice", "tableone", "gtsummary", "rlang")
 sapply(pacs, require, character.only = TRUE)
 
 # Read SAS data
@@ -93,9 +93,10 @@ overlap_f <- overlap0 %>%
       raised == 1 ~ 0,
       raised == 2 ~ 1,
       raised %in% 3:4 ~ 2,
-      raised == 5     ~ 3
+      raised == 5     ~ 3,
+      is.na(raised)   ~ 4
     ),
-    fam_struct = factor(fam_struct, labels = c("Two birthparents", "Two parents*", "Single-birthparent", "Other")),
+    fam_struct = factor(fam_struct, labels = c("Two birthparents", "Two parents*", "Single-birthparent", "Other", "Unknown")),
     
     # Personality traits
     # Note reversed signs
@@ -122,7 +123,9 @@ overlap_f <- overlap0 %>%
     ),
     jobstress = factor(jobstress, labels = c("Low frus or hi satis", "Hi frus & low satis")),
     
-    ulcer_dx = factor(ulcerc - 1, labels = c("No", "Yes"))
+    ulcer_dx = factor(ulcerc - 1, labels = c("No", "Yes")),
+    
+    rheumtsm_dx = factor(rheumtsm - 1, labels = c("No", "Yes"))
   )
 
 
@@ -186,6 +189,7 @@ table_vars <- c(
   "marital3",
   "smoke2",
   "ulcer_dx",
+  "rheumtsm_dx",
   "parent_warm",
   "parent_cold",
   "cold_mother",
@@ -214,7 +218,8 @@ imp1 %>%
       employ2 ~ "categorical", 
       cold_mother ~ "categorical", 
       cold_father ~ "categorical", 
-      ulcer_dx ~ "categorical"
+      ulcer_dx ~ "categorical",
+      rheumtsm_dx ~ "categorical"
       ),
     # missing = "always",
     # missing_text = "(Missing)"
@@ -284,7 +289,7 @@ ggcorrplot::ggcorrplot(cm, lab = TRUE)
 
 # GAM model including BMI cubic splines
 gam_bmi_nonlin <- mgcv::gam(
-  fibro_inc ~ agein + s(ahs1_bmi, bs = "cr") + educat3 + employ2 + marital3 + ulcer_dx,
+  fibro_inc ~ agein + s(ahs1_bmi, bs = "cr") + educat3 + employ2 + marital3 + ulcer_dx + rheumtsm_dx,
   family = binomial, 
   data = overlap_f,
   method = "GCV.Cp"
@@ -297,7 +302,7 @@ summary(gam_bmi_nonlin)
 # LR test for non-linearity
 # GAM model including BMI cubic splines, using unpenalized model
 gam_bmi_nonlin_unpenal <- mgcv::gam(
-  fibro_inc ~ agein + s(ahs1_bmi, bs = "cr", fx = TRUE) + educat3 + employ2 + marital3 + ulcer_dx,
+  fibro_inc ~ agein + s(ahs1_bmi, bs = "cr", fx = TRUE) + educat3 + employ2 + marital3 + ulcer_dx + rheumtsm_dx,
   family = binomial, 
   data = overlap_f,
   method = "GCV.Cp"
@@ -307,7 +312,7 @@ summary(gam_bmi_nonlin_unpenal)
 
 # Linear model
 gam_bmi_lin <- mgcv::gam(
-  fibro_inc ~ agein + ahs1_bmi + educat3 + employ2 + marital3 + ulcer_dx,
+  fibro_inc ~ agein + ahs1_bmi + educat3 + employ2 + marital3 + ulcer_dx + rheumtsm,
   family = binomial, 
   data = overlap_f,
   method = "GCV.Cp"
@@ -320,7 +325,7 @@ anova(gam_bmi_nonlin_unpenal, gam_bmi_lin)
 
 # GAM model including age cubic splines
 gam_age_nonlin <- mgcv::gam(
-  fibro_inc ~ s(agein, bs = "cr") + ahs1_bmi + educat3 + employ2 + marital3 + ulcer_dx,
+  fibro_inc ~ s(agein, bs = "cr") + ahs1_bmi + educat3 + employ2 + marital3 + ulcer_dx + rheumtsm_dx,
   family = binomial, 
   data = overlap_f,
   method = "GCV.Cp"
@@ -331,14 +336,14 @@ summary(gam_age_nonlin)
 
 # Using unpenalized model 
 gam_age_nonlin_unpenal <- mgcv::gam(
-  fibro_inc ~ s(agein, bs = "cr", fx = TRUE) + ahs1_bmi + educat3 + employ2 + marital3 + ulcer_dx,
+  fibro_inc ~ s(agein, bs = "cr", fx = TRUE) + ahs1_bmi + educat3 + employ2 + marital3 + ulcer_dx + rheumtsm_dx,
   family = binomial, 
   data = overlap_f,
   method = "GCV.Cp"
   )
 
 gam_age_lin <- mgcv::gam(
-  fibro_inc ~ agein + ahs1_bmi + educat3 + employ2 + marital3 + ulcer_dx,
+  fibro_inc ~ agein + ahs1_bmi + educat3 + employ2 + marital3 + ulcer_dx + rheumtsm_dx,
   family = binomial, 
   data = overlap_f,
   method = "GCV.Cp"
@@ -371,7 +376,8 @@ covars <- c(
   "employ2",
   "marital3",
   "smoke2",
-  "ulcer_dx"
+  "ulcer_dx",
+  "rheumtsm_dx"
 )
 
 # Function to run logistic reg on mids object
@@ -462,284 +468,141 @@ adjusted_results %>%
   print(n = Inf)
 
 
-# Multi-exposure models ---------------------------------------------------
+# Function for multi-exposure models --------------------------------------
 
-# Model with cold_mother and cold father together
-# Only among those with two birthparents or two parents
-fm_mem1 <- paste0("fibro_inc ~ cold_mother + cold_father + ", add_covars)
+personality <- c("depression4", "hostility3", "authority4", "urgency4")
 
-mem1_fit <- with(
-  imputed_processed, 
-  glm(
-    as.formula(fm_mem1),
-    family = "binomial",
-    subset = (fam_struct %in% c("Two birthparents", "Two parents*"))
+logis_fit_with_personality <- function(var, parenting, sub_cond){
+  
+  # Create formula  
+  fml <- paste0("fibro_inc ~ ", parenting, " + ", var, " + ", add_covars) 
+  
+  # Fit logistic model
+  logis_fit <- inject(
+    with(
+      imputed_processed, 
+      glm(
+        as.formula(fml), 
+        family = "binomial",
+        subset = !!sub_cond 
+      )
     )
   ) %>% 
-  pool()
+    pool()
+  
+  # Model output
+  logis_summary <- summary(logis_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
+    select(term, estimate, conf.low, conf.high, p.value) %>% 
+    mutate(p.value = format.pval(p.value, digits = 3)) %>% 
+    slice(-1)
+  
+  return(logis_summary)
+}
 
-mem1_fit_summary <- summary(mem1_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
-  select(term, estimate, conf.low, conf.high, p.value) %>% 
-  mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
-  mutate(p.value = format.pval(p.value, digits = 3)) %>% 
-  slice(-1)
+# Multi-exposure models with cold parents ---------------------------------
 
-# Model with cold parents and depression scale
-# Only among those with two birthparents or two parents
-fm_mem2 <- paste0("fibro_inc ~ parent_cold + depression4 + ", add_covars) 
+add_covars <- paste0(covars, collapse = " + ")
 
-mem2_fit <- with(
-  imputed_processed, 
-  glm(
-    as.formula(fm_mem2), 
-    family = "binomial",
-    subset = (fam_struct %in% c("Two birthparents", "Two parents*"))
-    )
-  ) %>% 
-  pool()
+cold_parent <- personality %>% 
+  map(\(x) logis_fit_with_personality(
+    var = x, 
+    parenting = "parent_cold",
+    sub_cond = expr(fam_struct %in% c("Two birthparents", "Two parents*"))
+    )) %>% 
+  setNames(personality)
 
-mem2_fit_summary <- summary(mem2_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
-  select(term, estimate, conf.low, conf.high, p.value) %>% 
-  # mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
-  mutate(p.value = format.pval(p.value, digits = 3)) %>% 
-  slice(-1)
+cold_parent
 
-# Model with cold parents and hostility scale
-# Only among those with two birthparents or two parents
-fm_mem3 <- paste0("fibro_inc ~ parent_cold + hostility3 + ", add_covars)
+# Sensitivity analysis
+# Excluding prevalent cases of rheumatism
+# Make sure to exclude the variable from the model formula
+add_covars <- paste0(covars[-8], collapse = " + ")
 
-mem3_fit <- with(
-  imputed_processed, 
-  glm(
-    as.formula(fm_mem3), 
-    family = "binomial",
-    subset = (fam_struct %in% c("Two birthparents", "Two parents*"))
-    )
-  ) %>% 
-  pool()
+cold_parent_excludes_rheumatsm <- personality %>% 
+  map(\(x) logis_fit_with_personality(
+    var = x, 
+    parenting = "parent_cold",
+    sub_cond = expr(fam_struct %in% c("Two birthparents", "Two parents*") & rheumtsm_dx == "No")
+    )) %>% 
+  setNames(personality)
 
-mem3_fit_summary <- summary(mem3_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
-  select(term, estimate, conf.low, conf.high, p.value) %>% 
-  # mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
-  mutate(p.value = format.pval(p.value, digits = 3)) %>% 
-  slice(-1)
+cold_parent_excludes_rheumatsm 
 
-# Model with cold parents and authority scale
-# Only among those with two birthparents or two parents
-fm_mem4 <- paste0("fibro_inc ~ parent_cold + authority4 + ", add_covars)
-
-mem4_fit <- with(
-  imputed_processed, 
-  glm(
-    as.formula(fm_mem4), 
-    family = "binomial",
-    subset = (fam_struct %in% c("Two birthparents", "Two parents*"))
-    )
-  ) %>% 
-  pool()
-
-mem4_fit_summary <- summary(mem4_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
-  select(term, estimate, conf.low, conf.high, p.value) %>% 
-  # mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
-  mutate(p.value = format.pval(p.value, digits = 3)) %>% 
-  slice(-1)
-
-# Model with cold parents and time urgency scale
-# Only among those with two birthparents or two parents
-fm_mem5 <- paste0("fibro_inc ~ parent_cold + urgency4 + ", add_covars)
-
-mem5_fit <- with(
-  imputed_processed, 
-  glm(
-    as.formula(fm_mem5), 
-    family = "binomial",
-    subset = (fam_struct %in% c("Two birthparents", "Two parents*"))
-    )
-  ) %>% 
-  pool()
-
-mem5_fit_summary <- summary(mem5_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
-  select(term, estimate, conf.low, conf.high, p.value) %>% 
-  # mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
-  mutate(p.value = format.pval(p.value, digits = 3)) %>% 
-  slice(-1)
-
-mem2_fit_summary
-mem3_fit_summary
-mem4_fit_summary
-mem5_fit_summary
+# Sensitivity analysis
+# Excluding unknown or missing family structure 
+# add_covars <- paste0(covars, collapse = " + ")
+# 
+# cold_parent_excludes_ukn_fam_structure <- personality %>% 
+#   map(\(x) logis_fit_with_personality(
+#     var = x, 
+#     parenting = "parent_cold",
+#     sub_cond = expr(fam_struct %in% c("Two birthparents", "Two parents*") & fam_struct != "Unknown")
+#     )) %>% 
+#   setNames(personality)
+# 
+# cold_parent_excludes_ukn_fam_structure 
 
 
 # Multi-exposure models with warm parents ---------------------------------
 
-# Model with warm parents and depression scale
-# Only among those with two birthparents or two parents
-fm_mem2 <- paste0("fibro_inc ~ parent_warm_rev + depression4 + ", add_covars)
+add_covars <- paste0(covars, collapse = " + ")
 
-mem2_fit <- with(
-  imputed_processed, 
-  glm(
-    as.formula(fm_mem2), 
-    family = "binomial",
-    subset = (fam_struct %in% c("Two birthparents", "Two parents*"))
-    )
-  ) %>% 
-  pool()
+warm_parent <- personality %>% 
+  map(\(x) logis_fit_with_personality(
+    var = x, 
+    parenting = "parent_warm_rev",
+    sub_cond = expr(fam_struct %in% c("Two birthparents", "Two parents*"))
+    )) %>% 
+  setNames(personality)
 
-mem2_fit_summary <- summary(mem2_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
-  select(term, estimate, conf.low, conf.high, p.value) %>% 
-  # mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
-  mutate(p.value = format.pval(p.value, digits = 3)) %>% 
-  slice(-1)
+warm_parent
 
-# Model with warm parents and hostility scale
-# Only among those with two birthparents or two parents
-fm_mem3 <- paste0("fibro_inc ~ parent_warm_rev + hostility3 + ", add_covars)
+# Sensitivity analysis
+# Excluding prevalent cases of rheumatism
+# Make sure to exclude the variable from the model formula
+add_covars <- paste0(covars[-8], collapse = " + ")
 
-mem3_fit <- with(
-  imputed_processed, 
-  glm(
-    as.formula(fm_mem3), 
-    family = "binomial",
-    subset = (fam_struct %in% c("Two birthparents", "Two parents*"))
-    )
-  ) %>% 
-  pool()
+warm_parent_excludes_rheumatsm <- personality %>% 
+  map(\(x) logis_fit_with_personality(
+    var = x, 
+    parenting = "parent_warm_rev",
+    sub_cond = expr(fam_struct %in% c("Two birthparents", "Two parents*") & rheumtsm_dx == "No")
+    )) %>% 
+  setNames(personality)
 
-mem3_fit_summary <- summary(mem3_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
-  select(term, estimate, conf.low, conf.high, p.value) %>% 
-  # mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
-  mutate(p.value = format.pval(p.value, digits = 3)) %>% 
-  slice(-1)
-
-# Model with warm parents and authority scale
-# Only among those with two birthparents or two parents
-fm_mem4 <- paste0("fibro_inc ~ parent_warm_rev + authority4 + ", add_covars)
-
-mem4_fit <- with(
-  imputed_processed, 
-  glm(
-    as.formula(fm_mem4), 
-    family = "binomial",
-    subset = (fam_struct %in% c("Two birthparents", "Two parents*"))
-    )
-  ) %>% 
-  pool()
-
-mem4_fit_summary <- summary(mem4_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
-  select(term, estimate, conf.low, conf.high, p.value) %>% 
-  # mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
-  mutate(p.value = format.pval(p.value, digits = 3)) %>% 
-  slice(-1)
-
-# Model with warm parents and time urgency scale
-# Only among those with two birthparents or two parents
-fm_mem5 <- paste0("fibro_inc ~ parent_warm_rev + urgency4 + ", add_covars)
-
-mem5_fit <- with(
-  imputed_processed, 
-  glm(
-    as.formula(fm_mem5), 
-    family = "binomial",
-    subset = (fam_struct %in% c("Two birthparents", "Two parents*"))
-    )
-  ) %>% 
-  pool()
-
-mem5_fit_summary <- summary(mem5_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
-  select(term, estimate, conf.low, conf.high, p.value) %>% 
-  # mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
-  mutate(p.value = format.pval(p.value, digits = 3)) %>% 
-  slice(-1)
-
-mem2_fit_summary
-mem3_fit_summary
-mem4_fit_summary
-mem5_fit_summary
+warm_parent_excludes_rheumatsm 
 
 # Multi-exposure models wtih cold mother ----------------------------------
 
-# Model with cold mother and depression scale
-# Only among those with two birthparents, two parents or a female birthparent only
-fm_mem2 <- paste0("fibro_inc ~ cold_mother + depression4 + ", add_covars)
+add_covars <- paste0(covars, collapse = " + ")
 
-mem2_fit <- with(
-  imputed_processed, 
-  glm(
-    as.formula(fm_mem2), 
-    family = "binomial",
-    subset = (raised %in% 1:3)
-    )
-  ) %>% 
-  pool()
+cold_mother <- personality %>% 
+  map(\(x) logis_fit_with_personality(
+    var = x, 
+    parenting = "cold_mother",
+    sub_cond = expr(raised %in% 1:3)
+    )) %>% 
+  setNames(personality)
 
-mem2_fit_summary <- summary(mem2_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
-  select(term, estimate, conf.low, conf.high, p.value) %>% 
-  # mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
-  mutate(p.value = format.pval(p.value, digits = 3)) %>% 
-  slice(-1)
+cold_mother
 
-# Model with cold mother and hostility scale
-# Only among those with two birthparents, two parents or a female birthparent only
-fm_mem3 <- paste0("fibro_inc ~ cold_mother + hostility3 + ", add_covars)
+# Sensitivity analysis
+# Excluding prevalent cases of rheumatism
+# Make sure to exclude the variable from the model formula
+add_covars <- paste0(covars[-8], collapse = " + ")
 
-mem3_fit <- with(
-  imputed_processed, 
-  glm(
-    as.formula(fm_mem3), 
-    family = "binomial",
-    subset = (raised %in% 1:3)
-    )
-  ) %>% 
-  pool()
+cold_mother_excludes_rheumatsm <- personality %>% 
+  map(\(x) logis_fit_with_personality(
+    var = x, 
+    parenting = "cold_mother",
+    sub_cond = expr(raised %in% 1:3 & rheumtsm_dx == "No")
+    )) %>% 
+  setNames(personality)
 
-mem3_fit_summary <- summary(mem3_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
-  select(term, estimate, conf.low, conf.high, p.value) %>% 
-  # mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
-  mutate(p.value = format.pval(p.value, digits = 3)) %>% 
-  slice(-1)
+cold_mother_excludes_rheumatsm 
 
-# Model with cold mother and authority scale
-# Only among those with two birthparents, two parents or a female birthparent only
-fm_mem4 <- paste0("fibro_inc ~ cold_mother + authority4 + ", add_covars)
-
-mem4_fit <- with(
-  imputed_processed, 
-  glm(
-    as.formula(fm_mem4), 
-    family = "binomial",
-    subset = (raised %in% 1:3)
-    )
-  ) %>% 
-  pool()
-
-mem4_fit_summary <- summary(mem4_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
-  select(term, estimate, conf.low, conf.high, p.value) %>% 
-  # mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
-  mutate(p.value = format.pval(p.value, digits = 3)) %>% 
-  slice(-1)
-
-# Model with cold mother and time urgency scale
-# Only among those with two birthparents, two parents or a female birthparent only
-fm_mem5 <- paste0("fibro_inc ~ cold_mother + urgency4 + ", add_covars)
-
-mem5_fit <- with(
-  imputed_processed, 
-  glm(
-    as.formula(fm_mem5), 
-    family = "binomial",
-    subset = (fam_struct %in% c("Two birthparents", "Two parents*"))
-    )
-  ) %>% 
-  pool()
-
-mem5_fit_summary <- summary(mem5_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
-  select(term, estimate, conf.low, conf.high, p.value) %>% 
-  # mutate(across(estimate:conf.high, \(x) round(x, 2))) %>% 
-  mutate(p.value = format.pval(p.value, digits = 3)) %>% 
-  slice(-1)
-
-mem2_fit_summary
-mem3_fit_summary
-mem4_fit_summary
-mem5_fit_summary
+imp1 %>% 
+  filter(raised %in% 1:3) %>% 
+  filter(rheumtsm_dx == "No") %>% 
+  # nrow()
+  count(fibro_inc)

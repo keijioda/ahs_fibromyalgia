@@ -68,6 +68,8 @@ AHS Overlap Population Fibromyalgia Study
     - If answered “A female birthparent only” or “A male birthparent
       only”, then categorized into “Single-birthparent”
     - If answered “Other” then categorized into “Other”
+    - If not answered (missing) then categorized into “Unknown” (missing
+      values were not imputed)
 - Psychologic characteristics (See [the questions in
   AHS-1](./images/AHS1_Q52.png))
   - Depression index score:
@@ -112,16 +114,16 @@ AHS Overlap Population Fibromyalgia Study
 
 - Data have some missing values. For example:
   - BMI is missing in about 9% of n = 3,136
-  - Family structure during early years of life has missing values for
-    ~9.5% of the subjects
+  - ~~Family structure during early years of life has missing values for
+    about 9.5% of the subjects~~ (decided not to impute)
 - Multiple imputation was performed using chained equations ([van Buuren
   & Groothuis-Oudshoorn,
   2011](https://cran.r-project.org/web/packages/mice/citation.html)) in
   the `mice` package, assuming that data are missing at random.
   - Ten imputed datasets were produced from an imputation model
     containing the outcome, exposure variables, and covariates
-    (demographics and BMI) that were used in logistic models (described
-    later)
+    (demographics, BMI, comorbidity) that were used in logistic models
+    (described later)
 
 ## Descriptive table
 
@@ -142,6 +144,7 @@ AHS Overlap Population Fibromyalgia Study
   - Smoking status: Based on AHS-1 Q27, categorized into 2 levels: Never
     or Ever
   - Prevalent stomach ulcer: Based on AHS-1 Q5: No or Yes
+  - Prevalent rheumatism: Based on AHS-1 Q5: No or Yes
 
 - (The descriptive table below was produced using the first imputed
   dataset)
@@ -206,25 +209,26 @@ AHS Overlap Population Fibromyalgia Study
 | parent_warm_rev | None | 1.69 | 1.01 | 2.83 | 0.0471 |  |
 | parent_cold | One | 1.39 | 0.95 | 2.04 | 0.0898 | 0.0145 |
 | parent_cold | Both | 1.87 | 1.04 | 3.36 | 0.0368 |  |
-| cold_mother | Yes | 1.47 | 0.94 | 2.30 | 0.0942 |  |
-| cold_father | Yes | 1.53 | 1.06 | 2.22 | 0.0247 |  |
-| fam_struct | Two parents\* | 1.95 | 1.13 | 3.36 | 0.0160 | 0.1869 |
-| fam_struct | Single-birthparent | 0.99 | 0.51 | 1.90 | 0.9684 |  |
-| fam_struct | Other | 1.83 | 0.72 | 4.64 | 0.2058 |  |
-| depression4 | 1 | 1.24 | 0.78 | 1.99 | 0.3600 | 5.3e-06 |
-| depression4 | 2 | 2.01 | 1.26 | 3.21 | 0.0034 |  |
-| depression4 | 3 | 3.29 | 1.91 | 5.67 | 0.0000 |  |
-| hostility3 | 1 | 1.50 | 1.01 | 2.24 | 0.0456 | 0.0038 |
-| hostility3 | 2 | 2.03 | 1.23 | 3.33 | 0.0055 |  |
-| authority4 | 1 | 1.68 | 0.97 | 2.90 | 0.0639 | 0.0263 |
-| authority4 | 2 | 1.97 | 1.09 | 3.56 | 0.0244 |  |
-| authority4 | 3 | 2.05 | 0.89 | 4.73 | 0.0913 |  |
-| urgency4 | 21-24 | 1.05 | 0.61 | 1.79 | 0.8690 | 0.2036 |
-| urgency4 | 25-29 | 1.39 | 0.84 | 2.28 | 0.1955 |  |
-| urgency4 | 30-40 | 1.29 | 0.76 | 2.17 | 0.3443 |  |
-| jobstress | Hi frus & low satis | 2.37 | 1.07 | 5.28 | 0.0342 |  |
+| cold_mother | Yes | 1.44 | 0.92 | 2.23 | 0.1074 |  |
+| cold_father | Yes | 1.49 | 1.03 | 2.16 | 0.0339 |  |
+| fam_struct | Two parents\* | 2.03 | 1.17 | 3.52 | 0.0117 |  |
+| fam_struct | Single-birthparent | 1.00 | 0.51 | 1.94 | 0.9993 |  |
+| fam_struct | Other | 1.99 | 0.78 | 5.08 | 0.1494 |  |
+| fam_struct | Unknown | 0.64 | 0.31 | 1.33 | 0.2305 |  |
+| depression4 | 1 | 1.18 | 0.74 | 1.87 | 0.4808 | 1.1e-05 |
+| depression4 | 2 | 1.99 | 1.26 | 3.15 | 0.0034 |  |
+| depression4 | 3 | 3.21 | 1.84 | 5.59 | 0.0000 |  |
+| hostility3 | 1 | 1.52 | 1.02 | 2.26 | 0.0373 | 0.0023 |
+| hostility3 | 2 | 2.09 | 1.28 | 3.43 | 0.0034 |  |
+| authority4 | 1 | 1.67 | 0.97 | 2.89 | 0.0645 | 0.0255 |
+| authority4 | 2 | 1.99 | 1.12 | 3.54 | 0.0195 |  |
+| authority4 | 3 | 1.99 | 0.87 | 4.56 | 0.1053 |  |
+| urgency4 | 21-24 | 1.06 | 0.62 | 1.82 | 0.8307 | 0.2128 |
+| urgency4 | 25-29 | 1.42 | 0.87 | 2.30 | 0.1579 |  |
+| urgency4 | 30-40 | 1.26 | 0.74 | 2.15 | 0.3846 |  |
+| jobstress | Hi frus & low satis | 2.40 | 1.06 | 5.41 | 0.0353 |  |
 
-### Odds ratios, adjusted for demographics, lifestyles and stomach ulcer
+### Odds ratios, adjusted for demographics, lifestyles and comorbidity
 
 - This time, we fit multivariable logistic models adjusting for:
 
@@ -234,18 +238,18 @@ AHS Overlap Population Fibromyalgia Study
       model~~
     - Linearity assumption was checked for BMI using a generalized
       additive model that includes a non-linear term for BMI, adjusting
-      for demographic variables
-    - The non-linear term of BMI was not significant (p = 0.26) and its
-      effective df was close to 1 (EDF = 1.441), suggesting that the
+      for demographic variables and comorbidity
+    - The non-linear term of BMI was not significant (p = 0.13) and its
+      effective df was close to 1 (EDF = 1.435), suggesting that the
       association between incident fibromyalgia and BMI is (if any)
-      linear on logit scale when adjusting for demographic variables
+      linear on logit scale when adjusting for other variables
   - Education as categorical
   - Employment as binary (employed/unemployed)
   - Marital status as categorical
   - Smoking as binary (Never/ever)
-  - Stomach ulcer (No/Yes)
-    - From AHS-1 questionnaire: “Has a doctor EVER told you that you
-      had…”
+  - Comorbidity: Stomach ulcer and rheumatism (No/Yes)
+    - From [AHS-1 questionnaire Q5](./images/AHS1_Q5.png): “Has a doctor
+      EVER told you that you had…”
 
 - Again, the logistic models were fitted for each of 10 imputed
   datasets, and the results were pooled using Rubin’s rules
@@ -262,27 +266,28 @@ AHS Overlap Population Fibromyalgia Study
 
 | predictor | term | odds.ratio | conf.low | conf.high | p.value | trend.p |
 |:---|:---|---:|---:|---:|---:|:---|
-| parent_warm_rev | One | 1.74 | 1.18 | 2.55 | 0.0048 | 0.0085 |
-| parent_warm_rev | None | 1.66 | 0.98 | 2.82 | 0.0586 |  |
-| parent_cold | One | 1.33 | 0.90 | 1.97 | 0.1535 | 0.0281 |
-| parent_cold | Both | 1.82 | 1.00 | 3.32 | 0.0496 |  |
-| cold_mother | Yes | 1.40 | 0.88 | 2.21 | 0.1528 |  |
-| cold_father | Yes | 1.49 | 1.02 | 2.18 | 0.0368 |  |
-| fam_struct | Two parents\* | 1.68 | 0.96 | 2.93 | 0.0707 | 0.3082 |
-| fam_struct | Single-birthparent | 0.96 | 0.50 | 1.87 | 0.9155 |  |
-| fam_struct | Other | 1.70 | 0.66 | 4.37 | 0.2744 |  |
-| depression4 | 1 | 1.26 | 0.79 | 2.03 | 0.3318 | 7.1e-06 |
-| depression4 | 2 | 2.03 | 1.26 | 3.26 | 0.0038 |  |
-| depression4 | 3 | 3.44 | 1.94 | 6.08 | 0.0000 |  |
-| hostility3 | 1 | 1.39 | 0.93 | 2.09 | 0.1069 | 0.0308 |
-| hostility3 | 2 | 1.70 | 1.02 | 2.84 | 0.0411 |  |
-| authority4 | 1 | 1.71 | 0.98 | 2.99 | 0.0569 | 0.0041 |
-| authority4 | 2 | 2.22 | 1.21 | 4.07 | 0.0103 |  |
-| authority4 | 3 | 2.75 | 1.17 | 6.47 | 0.0201 |  |
-| urgency4 | 21-24 | 1.04 | 0.60 | 1.80 | 0.8901 | 0.2531 |
-| urgency4 | 25-29 | 1.30 | 0.78 | 2.16 | 0.3072 |  |
-| urgency4 | 30-40 | 1.28 | 0.75 | 2.21 | 0.3668 |  |
-| jobstress | Hi frus & low satis | 2.06 | 0.90 | 4.69 | 0.0866 |  |
+| parent_warm_rev | One | 1.71 | 1.16 | 2.51 | 0.0066 | 0.0137 |
+| parent_warm_rev | None | 1.61 | 0.94 | 2.73 | 0.0813 |  |
+| parent_cold | One | 1.29 | 0.87 | 1.92 | 0.2002 | 0.0566 |
+| parent_cold | Both | 1.68 | 0.92 | 3.08 | 0.0942 |  |
+| cold_mother | Yes | 1.31 | 0.83 | 2.07 | 0.2462 |  |
+| cold_father | Yes | 1.39 | 0.95 | 2.03 | 0.0892 |  |
+| fam_struct | Two parents\* | 1.72 | 0.97 | 3.06 | 0.0628 |  |
+| fam_struct | Single-birthparent | 1.04 | 0.53 | 2.06 | 0.9026 |  |
+| fam_struct | Other | 1.93 | 0.74 | 5.03 | 0.1804 |  |
+| fam_struct | Unknown | 0.70 | 0.33 | 1.47 | 0.3511 |  |
+| depression4 | 1 | 1.17 | 0.73 | 1.87 | 0.5030 | 3.3e-05 |
+| depression4 | 2 | 1.98 | 1.23 | 3.17 | 0.0047 |  |
+| depression4 | 3 | 3.13 | 1.75 | 5.58 | 0.0001 |  |
+| hostility3 | 1 | 1.41 | 0.94 | 2.10 | 0.0976 | 0.0235 |
+| hostility3 | 2 | 1.75 | 1.05 | 2.91 | 0.0316 |  |
+| authority4 | 1 | 1.70 | 0.98 | 2.95 | 0.0599 | 0.0046 |
+| authority4 | 2 | 2.18 | 1.21 | 3.93 | 0.0100 |  |
+| authority4 | 3 | 2.70 | 1.14 | 6.38 | 0.0234 |  |
+| urgency4 | 21-24 | 1.00 | 0.57 | 1.73 | 0.9902 | 0.3532 |
+| urgency4 | 25-29 | 1.27 | 0.77 | 2.09 | 0.3435 |  |
+| urgency4 | 30-40 | 1.19 | 0.68 | 2.07 | 0.5349 |  |
+| jobstress | Hi frus & low satis | 2.08 | 0.89 | 4.85 | 0.0890 |  |
 
 ## Multiple exposure models
 
@@ -293,7 +298,7 @@ AHS Overlap Population Fibromyalgia Study
     hostility, authority, or time urgency
   - Always includes cold parent (none/one/both, none as the reference)
   - Also adjusting for age, BMI, education, employment, marital status,
-    smoking, and stomach ulcer
+    smoking, and comorbidity variables
   - using data that include only those subjects who were raised by
     either “two birthparents” or “two parents (one or both were not
     birth parent)
@@ -304,16 +309,25 @@ AHS Overlap Population Fibromyalgia Study
 
 - In all the four models, higher odds of developing FM were observed
   when one or both parents were perceived cold, but ORs were not
-  statistically significant (OR = 1.15 to 1.28 for one cold parent; 1.51
-  to 1.63 for both cold)
+  statistically significant (OR = 1.02 to 1.13 for one cold parent; 1.27
+  to 1.34 for both cold)
 
 - Among psychological characteristics:
 
-  - Depression and authority scales were associated with significantly
-    higher odds of FM in a “dose-response” manner, adjusting for cold
-    parenting, demographics/lifestyle and stomach ulcer
-  - However, there were no statistically significant ORs for hostility
-    and time urgency scales
+  - Depression was associated with significantly higher odds of FM in a
+    “dose-response” manner, adjusting for cold parenting,
+    demographics/lifestyle and stomach ulcer
+  - Hostility and authority scales showed elevated ORs, but some of them
+    were not statistically significant
+  - However, there were no statistically significant ORs for time
+    urgency scale
+
+- Sensitivity analysis was conducted, excluding those with rheumatism.
+
+  - [See the result
+    here](./images/pooled_results_OR_multi_exposure_models_cold_parent_excludes_rheumatism.png)
+  - [See the result in Excel
+    format](./results/pooled_results_OR_multi_exposure_models_cold_parent_excludes_rheumatism.xlsx)
 
 ### Warm parent + psychological variables
 
@@ -332,17 +346,26 @@ AHS Overlap Population Fibromyalgia Study
 
 ![](./images/pooled_results_OR_multi_exposure_models_warm_parent.png)
 
-- In all the four models, significantly higher odds of developing FM
-  were observed when only one of parents were perceived warm (OR = 1.59
-  to 1.77). The ORs associated with no warm parents were slightly lower
-  and not statistically significant (OR = 1.55 to 1.70)
+- Except for Model 1, significantly higher odds of developing FM were
+  observed when only one of parents were perceived warm (OR = 1.47 to
+  1.63). The ORs associated with no warm parents were slightly lower and
+  not statistically significant (OR = 1.40 to 1.52)
 
-- Depression and authority scales were associated with significantly
-  higher odds of FM in a “dose-response” manner, adjusting for warm
-  parenting, demographics/lifestyle and stomach ulcer
+- Depression was associated with significantly higher odds of FM in a
+  “dose-response” manner, adjusting for warm parenting,
+  demographics/lifestyle and comorbidity
 
-  - However, there were no statistically significant ORs for hostility
-    and time urgency scales
+  - Hostility and authority scales showed elevated ORs, but some of them
+    were not statistically significant
+  - However, there were no statistically significant ORs for time
+    urgency scale
+
+- Sensitivity analysis was conducted, excluding those with rheumatism.
+
+  - [See the result
+    here](./images/pooled_results_OR_multi_exposure_models_warm_parent_excludes_rheumatism.png)
+  - [See the result in Excel
+    format](./results/pooled_results_OR_multi_exposure_models_warm_parent_excludes_rheumatism.xlsx)
 
 ### Cold mother + psychological variables
 
@@ -361,19 +384,36 @@ AHS Overlap Population Fibromyalgia Study
 
 ![](./images/pooled_results_OR_multi_exposure_models_cold_mother.png)
 
-- In all the four models, higher odds of developing FM were observed
-  with cold mother, but the ORs were not statistically significant (OR =
-  1.22 to 1.33).
+- In all the four models, cold mother was not associated with FM after
+  adjusting for other variables.
 
 - Depression and authority scales were associated with significantly
   higher odds of FM in a “dose-response” manner, adjusting for cold
-  mother, demographics/lifestyle and stomach ulcer
+  mother, demographics/lifestyle and comorbidity
 
   - However, there were no statistically significant ORs for hostility
     and time urgency scales
 
-## Change log
+- Sensitivity analysis was conducted, excluding those with rheumatism.
 
+  - [See the result
+    here](./images/pooled_results_OR_multi_exposure_models_cold_mother_excludes_rheumatism.png)
+  - [See the result in Excel
+    format](./results/pooled_results_OR_multi_exposure_models_cold_mother_excludes_rheumatism.xlsx)
+
+## Change/Meeting log
+
+- **03/16/2026**:
+  - Exclude or adjust for prevalent cases of rheumatism?
+    - For sensitivity analysis
+      - **\[Done\]** Adjust for it if kept in the data
+      - **\[Done\]** Then exclude them for model comparison
+  - Family structure:
+    - **\[Done\]** Missing (“Unknown”) as another level of family
+      structure (Do not impute)
+    - Sensitivity analysis excluding unknown
+  - Logistic models: Remove the parenting variable and include two or
+    more of the personality types?
 - **03/14/2026**:
   - For logistic models:
     - Added two more covariates: Smoking status (Never/Ever) and stomach

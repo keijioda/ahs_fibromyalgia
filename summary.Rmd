@@ -89,9 +89,10 @@ overlap_f <- overlap0 %>%
       raised == 1 ~ 0,
       raised == 2 ~ 1,
       raised %in% 3:4 ~ 2,
-      raised == 5     ~ 3
+      raised == 5     ~ 3,
+      is.na(raised)   ~ 4
     ),
-    fam_struct = factor(fam_struct, labels = c("Two birthparents", "Two parents*", "Single-birthparent", "Other")),
+    fam_struct = factor(fam_struct, labels = c("Two birthparents", "Two parents*", "Single-birthparent", "Other", "Unknown")),
     
     # Personality traits
     # Note reversed signs
@@ -118,7 +119,9 @@ overlap_f <- overlap0 %>%
     ),
     jobstress = factor(jobstress, labels = c("Low frus or hi satis", "Hi frus & low satis")),
     
-    ulcer_dx = factor(ulcerc - 1, labels = c("No", "Yes"))
+    ulcer_dx = factor(ulcerc - 1, labels = c("No", "Yes")),
+    
+    rheumtsm_dx = factor(rheumtsm - 1, labels = c("No", "Yes"))
   )
 
 ```
@@ -178,6 +181,7 @@ overlap_f %>%
     * If answered "Two parents, but one or both...", then categorized into "Two parents*" (one or both were not birth parent)
     * If answered "A female birthparent only" or "A male birthparent only", then categorized into "Single-birthparent"
     * If answered "Other" then categorized into "Other"
+    * If not answered (missing) then categorized into "Unknown" (missing values were not imputed)
 
 * Psychologic characteristics (See [the questions in AHS-1](./images/AHS1_Q52.png))
   * Depression index score:
@@ -219,10 +223,10 @@ overlap_f %>%
 
 * Data have some missing values. For example: 
   * BMI is missing in about 9% of n = 3,136
-  * Family structure during early years of life has missing values for ~9.5% of the subjects
+  * ~~Family structure during early years of life has missing values for about 9.5% of the subjects~~ (decided not to impute)
 
 * Multiple imputation was performed using chained equations ([van Buuren & Groothuis-Oudshoorn, 2011](https://cran.r-project.org/web/packages/mice/citation.html)) in the `mice` package, assuming that data are missing at random.
-  * Ten imputed datasets were produced from an imputation model containing the outcome, exposure variables, and covariates (demographics and BMI) that were used in logistic models (described later)
+  * Ten imputed datasets were produced from an imputation model containing the outcome, exposure variables, and covariates (demographics, BMI, comorbidity) that were used in logistic models (described later)
 
 ## Descriptive table
 
@@ -236,6 +240,7 @@ overlap_f %>%
   * Marital status: Based on the AHS-1 variable `MaritalCQ`, categorized into 3 levels as shown in the table
   * Smoking status: Based on AHS-1 Q27, categorized into 2 levels: Never or Ever
   * Prevalent stomach ulcer: Based on AHS-1 Q5: No or Yes 
+  * Prevalent rheumatism: Based on AHS-1 Q5: No or Yes 
 
 * (The descriptive table below was produced using the first imputed dataset)
 
@@ -266,6 +271,7 @@ table_vars <- c(
   "marital3",
   "smoke2",
   "ulcer_dx",
+  "rheumtsm_dx",
   "parent_warm",
   "parent_cold",
   "cold_mother",
@@ -291,7 +297,9 @@ imp1 %>%
       employ2 ~ "categorical", 
       cold_mother ~ "categorical", 
       cold_father ~ "categorical",
-      ulcer_dx ~ "categorical"),
+      ulcer_dx ~ "categorical",
+      rheumtsm_dx ~ "categorical"
+      ),
     # missing = "always",
     # missing_text = "(Missing)"
   ) %>%
@@ -406,7 +414,8 @@ covars <- c(
   "employ2",
   "marital3",
   "smoke2",
-  "ulcer_dx"
+  "ulcer_dx",
+  "rheumtsm_dx"
 )
 
 # Function to run logistic reg on mids object
@@ -438,7 +447,7 @@ unadjusted_trendp <- map(model_formulas, ~ mice_logistic(.x)) %>%
   remove_rownames() %>% 
   mutate(term = gsub("as.numeric\\(|\\)", "", term)) %>% 
   rename(trend.p = p.value) %>% 
-  filter(!(term %in% c("jobstress", "cold_mother", "cold_father"))) %>% 
+  filter(!(term %in% c("jobstress", "cold_mother", "cold_father", "fam_struct"))) %>% 
   mutate(trend.p = format.pval(trend.p, digits = 2)) %>% 
   select(term, trend.p) 
 
@@ -457,20 +466,20 @@ unadjusted_results %>%
 
 ```
 
-### Odds ratios, adjusted for demographics, lifestyles and stomach ulcer
+### Odds ratios, adjusted for demographics, lifestyles and comorbidity 
 
 * This time, we fit multivariable logistic models adjusting for:
   * Age as continuous
   * BMI as continuous
     * ~~**[TO DO]** Check for non-linearity, possibly using a GAM model~~
-    * Linearity assumption was checked for BMI using a generalized additive model that includes a non-linear term for BMI, adjusting for demographic variables
-    * The non-linear term of BMI was not significant (p = 0.26) and its effective df was close to 1 (EDF = 1.441), suggesting that the association between incident fibromyalgia and BMI is (if any) linear on logit scale when adjusting for demographic variables
+    * Linearity assumption was checked for BMI using a generalized additive model that includes a non-linear term for BMI, adjusting for demographic variables and comorbidity
+    * The non-linear term of BMI was not significant (p = 0.13) and its effective df was close to 1 (EDF = 1.435), suggesting that the association between incident fibromyalgia and BMI is (if any) linear on logit scale when adjusting for other variables
   * Education as categorical
   * Employment as binary (employed/unemployed)
   * Marital status as categorical
   * Smoking as binary (Never/ever)
-  * Stomach ulcer (No/Yes)
-    * From AHS-1 questionnaire: "Has a doctor EVER told you that you had..."
+  * Comorbidity: Stomach ulcer and rheumatism (No/Yes)
+    * From [AHS-1 questionnaire Q5](./images/AHS1_Q5.png): "Has a doctor EVER told you that you had..."
 
 * Again, the logistic models were fitted for each of 10 imputed datasets, and the results were pooled using Rubin's rules
 
@@ -512,7 +521,7 @@ adjusted_trendp <- map(model_formulas, ~ mice_logistic(.x)) %>%
     ) %>% 
   rename(trend.p = p.value) %>% 
   filter(predictor %in% ind_vars) %>% 
-  filter(!(term %in% c("jobstress", "cold_mother", "cold_father"))) %>% 
+  filter(!(term %in% c("jobstress", "cold_mother", "cold_father", "fam_struct"))) %>% 
   mutate(trend.p = format.pval(trend.p, digits = 2)) %>% 
   select(predictor, trend.p) 
 
@@ -537,18 +546,23 @@ adjusted_results %>%
 * Following four logistic models were fitted:
   * Includes either one of psychological variables, depression, hostility, authority, or time urgency
   * Always includes cold parent (none/one/both, none as the reference)
-  * Also adjusting for age, BMI, education, employment, marital status, smoking, and stomach ulcer
+  * Also adjusting for age, BMI, education, employment, marital status, smoking, and comorbidity variables
   * using data that include only those subjects who were raised by either "two birthparents" or "two parents (one or both were not birth parent)
 
 * [See the Excel table for odds ratios in the four models](./results/pooled_results_OR_multi_exposure_models_cold_parent.xlsx)
 
 ![](./images/pooled_results_OR_multi_exposure_models_cold_parent.png)
 
-* In all the four models, higher odds of developing FM were observed when one or both parents were perceived cold, but ORs were not statistically significant (OR = 1.15 to 1.28 for one cold parent; 1.51 to 1.63 for both cold)
+* In all the four models, higher odds of developing FM were observed when one or both parents were perceived cold, but ORs were not statistically significant (OR = 1.02 to 1.13 for one cold parent; 1.27 to 1.34 for both cold)
 
 * Among psychological characteristics:
-  * Depression and authority scales were associated with significantly higher odds of FM in a "dose-response" manner, adjusting for cold parenting, demographics/lifestyle and stomach ulcer
-  * However, there were no statistically significant ORs for hostility and time urgency scales
+  * Depression was associated with significantly higher odds of FM in a "dose-response" manner, adjusting for cold parenting, demographics/lifestyle and stomach ulcer
+  * Hostility and authority scales showed elevated ORs, but some of them were not statistically significant
+  * However, there were no statistically significant ORs for time urgency scale
+
+* Sensitivity analysis was conducted, excluding those with rheumatism. 
+  * [See the result here](./images/pooled_results_OR_multi_exposure_models_cold_parent_excludes_rheumatism.png) 
+  * [See the result in Excel format](./results/pooled_results_OR_multi_exposure_models_cold_parent_excludes_rheumatism.xlsx)
 
 ### Warm parent + psychological variables
 
@@ -562,10 +576,15 @@ adjusted_results %>%
 
 ![](./images/pooled_results_OR_multi_exposure_models_warm_parent.png)
 
-* In all the four models, significantly higher odds of developing FM were observed when only one of parents were perceived warm (OR = 1.59 to 1.77). The ORs associated with no warm parents were slightly lower and not statistically significant (OR = 1.55 to 1.70)
+* Except for Model 1, significantly higher odds of developing FM were observed when only one of parents were perceived warm (OR = 1.47 to 1.63). The ORs associated with no warm parents were slightly lower and not statistically significant (OR = 1.40 to 1.52)
 
-* Depression and authority scales were associated with significantly higher odds of FM in a "dose-response" manner, adjusting for warm parenting, demographics/lifestyle and stomach ulcer
-  * However, there were no statistically significant ORs for hostility and time urgency scales
+* Depression was associated with significantly higher odds of FM in a "dose-response" manner, adjusting for warm parenting, demographics/lifestyle and comorbidity
+  * Hostility and authority scales showed elevated ORs, but some of them were not statistically significant
+  * However, there were no statistically significant ORs for time urgency scale
+
+* Sensitivity analysis was conducted, excluding those with rheumatism. 
+  * [See the result here](./images/pooled_results_OR_multi_exposure_models_warm_parent_excludes_rheumatism.png)
+  * [See the result in Excel format](./results/pooled_results_OR_multi_exposure_models_warm_parent_excludes_rheumatism.xlsx)
 
 ### Cold mother + psychological variables
 
@@ -579,13 +598,29 @@ adjusted_results %>%
 
 ![](./images/pooled_results_OR_multi_exposure_models_cold_mother.png)
 
-* In all the four models, higher odds of developing FM were observed with cold mother, but the ORs were not statistically significant (OR = 1.22 to 1.33).
+* In all the four models, cold mother was not associated with FM after adjusting for other variables.
 
-* Depression and authority scales were associated with significantly higher odds of FM in a "dose-response" manner, adjusting for cold mother, demographics/lifestyle and stomach ulcer
+* Depression and authority scales were associated with significantly higher odds of FM in a "dose-response" manner, adjusting for cold mother, demographics/lifestyle and comorbidity
   * However, there were no statistically significant ORs for hostility and time urgency scales
 
-## Change log
+* Sensitivity analysis was conducted, excluding those with rheumatism. 
+  * [See the result here](./images/pooled_results_OR_multi_exposure_models_cold_mother_excludes_rheumatism.png)
+  * [See the result in Excel format](./results/pooled_results_OR_multi_exposure_models_cold_mother_excludes_rheumatism.xlsx)
 
+## Change/Meeting log
+
+* **03/16/2026**:
+  * Exclude or adjust for prevalent cases of rheumatism?
+    * For sensitivity analysis
+      * **[Done]** Adjust for it if kept in the data
+      * **[Done]** Then exclude them for model comparison
+      
+  * Family structure: 
+    * **[Done]** Missing ("Unknown") as another level of family structure (Do not impute)
+    * Sensitivity analysis excluding unknown
+  
+  * Logistic models: Remove the parenting variable and include two or more of the personality types?
+  
 * **03/14/2026**:
   * For logistic models:
     * Added two more covariates: Smoking status (Never/Ever) and stomach ulcer (No/Yes). See the section of "Descriptive table"
