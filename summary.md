@@ -411,7 +411,7 @@ AHS Overlap Population Fibromyalgia Study
   - Family structure:
     - **\[Done\]** Missing (“Unknown”) as another level of family
       structure (Do not impute)
-    - Sensitivity analysis excluding unknown
+    - **\[Done\]** Sensitivity analysis excluding unknown
   - Logistic models: Remove the parenting variable and include two or
     more of the personality types?
 - **03/14/2026**:
