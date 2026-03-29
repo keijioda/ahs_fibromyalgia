@@ -401,8 +401,40 @@ AHS Overlap Population Fibromyalgia Study
   - [See the result in Excel
     format](./results/pooled_results_OR_multi_exposure_models_cold_mother_excludes_rheumatism.xlsx)
 
+### Two-personality models
+
+- Following three logistic models were fitted, without any parenting
+  style variables:
+  - Depression + hostility
+  - Depression + authority
+  - Hostility + authority
+  - All models adjusting for age, BMI, education, employment, marital
+    status, smoking, and comorbidity variables
+- [See the Excel table for odds ratios in the three
+  models](./results/pooled_results_OR_multi_exposure_models_personality.xlsx)
+
+![](./images/pooled_results_OR_multi_exposure_models_personality.png)
+
+- When a model includes depression, the variable always shows a
+  “dose-response” relationship, with the two severely-depressed groups
+  being highly significant
+
+- Similarly, authority is positively associated with FM in a
+  “dose-response” matter when adjusting for hostility
+
+- Sensitivity analysis was conducted, excluding those with rheumatism.
+
+  - [See the result
+    here](./images/pooled_results_OR_multi_exposure_models_personality_excludes_rheumatism.png)
+  - [See the result in Excel
+    format](./results/pooled_results_OR_multi_exposure_models_personality_excludes_rheumatism.xlsx)
+
 ## Change/Meeting log
 
+- **03/23/2026**:
+  - Two-personality models: After removing parenting,
+    - **\[Done\]** Depression + (hostility or authority)
+    - **\[Done\]** Hostility + Authority
 - **03/16/2026**:
   - Exclude or adjust for prevalent cases of rheumatism?
     - For sensitivity analysis
