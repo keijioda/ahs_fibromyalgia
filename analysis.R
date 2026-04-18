@@ -660,3 +660,36 @@ logis_fit_with_2_personality("hostility3", "authority4")
 add_covars <- paste0(covars[-8], collapse = " + ")
 logis_fit_with_2_personality("hostility3", "authority4", expr(rheumtsm_dx == "No"))
 
+
+# Mullti-exposure models: Depression + Hostility + Authority --------------
+logis_fit_with_3_personality <- function(var1, var2, var3, sub_cond = NULL){
+  
+  # Create formula  
+  fml <- paste0("fibro_inc ~ ", var1, " + ", var2, " + ", var3, " + ", add_covars) 
+  
+  if (!is.null(sub_cond)) {
+    logis_fit <- inject(
+      with(imputed_processed, 
+           glm(as.formula(fml), family = "binomial", subset = !!sub_cond))
+    )
+  } else {
+    logis_fit <- with(imputed_processed, 
+                      glm(as.formula(fml), family = "binomial"))
+  }
+  
+  logis_fit <- pool(logis_fit)
+  
+  # Model output
+  logis_summary <- summary(logis_fit, conf.int = TRUE, exponentiate = TRUE) %>% 
+    select(term, estimate, conf.low, conf.high, p.value) %>% 
+    mutate(p.value = format.pval(p.value, digits = 3)) %>% 
+    slice(-1)
+  
+  return(logis_summary)
+}
+
+add_covars <- paste0(covars, collapse = " + ")
+logis_fit_with_3_personality("depression4", "hostility3", "authority4")
+
+add_covars <- paste0(covars[-8], collapse = " + ")
+logis_fit_with_3_personality("depression4", "hostility3", "authority4", expr(rheumtsm_dx == "No"))

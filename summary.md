@@ -401,13 +401,14 @@ AHS Overlap Population Fibromyalgia Study
   - [See the result in Excel
     format](./results/pooled_results_OR_multi_exposure_models_cold_mother_excludes_rheumatism.xlsx)
 
-### Two-personality models
+### Personality models
 
 - Following three logistic models were fitted, without any parenting
   style variables:
   - Depression + hostility
   - Depression + authority
   - Hostility + authority
+  - Depression + Hostility + authority
   - All models adjusting for age, BMI, education, employment, marital
     status, smoking, and comorbidity variables
 - [See the Excel table for odds ratios in the three
@@ -431,6 +432,13 @@ AHS Overlap Population Fibromyalgia Study
 
 ## Change/Meeting log
 
+- **04/13/2026**:
+  - Ran a model with depression, hostility, and authority during the
+    meeting
+  - The manuscript needs to be revised
+  - Next meeting: Monday, May 4
+  - Next paper: Telomere length as continuous & Authority
+    - Check to see if we have n ~ 300 with personality variables
 - **03/23/2026**:
   - Two-personality models: After removing parenting,
     - **\[Done\]** Depression + (hostility or authority)
