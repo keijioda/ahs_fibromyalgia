@@ -411,7 +411,7 @@ AHS Overlap Population Fibromyalgia Study
   - Depression + Hostility + authority
   - All models adjusting for age, BMI, education, employment, marital
     status, smoking, and comorbidity variables
-- [See the Excel table for odds ratios in the three
+- [See the Excel table for odds ratios in the four
   models](./results/pooled_results_OR_multi_exposure_models_personality.xlsx)
 
 ![](./images/pooled_results_OR_multi_exposure_models_personality.png)
